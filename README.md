@@ -29,3 +29,9 @@ Mahomes. The variables `pbp_id` and `pbp_name` are joinable to nflfastR.
 | team.season | team.abbr | teamPlayers.displayName | teamPlayers.position | teamPlayers.birthDate | teamPlayers.collegeName | teamPlayers.height | teamPlayers.weight | pbp\_id                              | pbp\_name |
 | ----------: | :-------- | :---------------------- | :------------------- | :-------------------- | :---------------------- | :----------------- | -----------------: | :----------------------------------- | :-------- |
 |        2020 | KC        | Patrick Mahomes         | QB                   | 1995-09-17            | Texas Tech              | 6-3                |                230 | 32013030-2d30-3033-3338-3733fa30c4fa | P.Mahomes |
+
+Please note: This repo updates itself every 15 minutes by joining the
+most recent [nflfastR play-by-play
+data](https://github.com/guga31bb/nflfastR-data/tree/master/data) to the
+scraped rosters. So if a very new player ID is missing please wait until
+the data repo is updated.
