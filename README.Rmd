@@ -34,3 +34,5 @@ readRDS("data/nflfastr-roster.rds") %>%
   knitr::kable()
 ```
 
+Please note:
+This repo updates itself every 15 minutes by joining the most recent [nflfastR play-by-play data](https://github.com/guga31bb/nflfastR-data/tree/master/data) to the scraped rosters. So if a very new player ID is missing please wait until the data repo is updated.
