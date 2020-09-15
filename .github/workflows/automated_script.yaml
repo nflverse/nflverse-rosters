@@ -1,8 +1,8 @@
 on:
   # Trigger the workflow on push to the master branch
-  push:
-    branches:
-      - master
+  # push:
+  #   branches:
+  #     - master
 
   schedule:
     # runs every 15 minutes starting from minute 0 of every hour
