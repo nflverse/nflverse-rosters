@@ -5,7 +5,7 @@ most_recent <- dplyr::if_else(
 )
 
 message("Download pbp...")
-pbp <- purrr::map_df(2011:most_recent, function(x) {readRDS(url(
+pbp <- purrr::map_df(1999:most_recent, function(x) {readRDS(url(
       glue::glue("https://raw.githubusercontent.com/guga31bb/nflfastR-data/master/data/play_by_play_{x}.rds")
     ))})
 
