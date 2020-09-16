@@ -58,7 +58,8 @@ roster_new <- roster %>%
   dplyr::mutate(
     pbp_id = dplyr::first(stats::na.omit(pbp_id)),
     pbp_name = dplyr::first(stats::na.omit(pbp_name))
-  )
+  ) %>%
+  dplyr::ungroup()
 
 message("Save stuff...")
 saveRDS(roster_new, "data/nflfastR-roster.rds")
