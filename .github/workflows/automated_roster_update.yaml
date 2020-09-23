@@ -1,0 +1,29 @@
+on:
+  schedule:
+    # runs every day at 7:00 AM UTC
+    - cron:  '0 7 * * *'
+  push:
+    paths:
+      - R/update_roster.R
+
+name: Seb's automated roster update
+
+jobs:
+  update:
+    name: Update roster
+    runs-on: macOS-latest
+    steps:
+      - uses: actions/checkout@v2
+      - uses: r-lib/actions/setup-r@v1
+      - name: Install necessary packages
+        run: |
+          install.packages(c("tidyverse", "lubridate", "glue", "jsonlite", "callr"), dependencies = TRUE)
+        shell: Rscript {0}
+      - name: Run update script
+        run: Rscript -e 'source("R/update_roster.R")'
+      - name: Commit results
+        run: |
+          git config --local user.email "actions@github.com"
+          git config --local user.name "GitHub Actions"
+          Rscript -e 'source("R/make_roster_commit.R")'
+          git push origin master || echo "No changes to commit"
