@@ -8,7 +8,9 @@ roster <-
   dplyr::na_if("") %>%
   dplyr::filter(!(is.na(team) & is.na(gsis_id)), !player_id %in% nflfastR::teams_colors_logos$team_abbr, first_name != "Duplicate") %>%
   dplyr::filter(!player_id %in% nflfastR::teams_colors_logos$team_abbr, first_name != "Duplicate") %>%
+  dplyr::left_join(readRDS("R/na_map.rds"), by = c("sportradar_id" = "id")) %>%
   dplyr::mutate(
+    gsis_id = dplyr::if_else(is.na(gsis_id), gsis, gsis_id),
     update_dt = lubridate::now("America/New_York"),
     season = dplyr::if_else(
       lubridate::month(update_dt) < 3,
