@@ -71,7 +71,8 @@ roster <- roster %>%
       TRUE ~ team
     ),
     height = stringr::str_remove_all(height, "\\\""),
-    height = stringr::str_replace_all(height, "'", "-")
+    height = stringr::str_replace_all(height, "'", "-"),
+    birth_date = lubridate::as_date(birth_date)
   ) %>%
   dplyr::arrange(team, position)
 
