@@ -64,6 +64,13 @@ roster <- roster %>%
     update_dt,
     headshot_url
   ) %>%
+  dplyr::mutate(
+    team = dplyr::case_when(
+      team == "LAR" ~ "LA",
+      team == "OAK" ~ "LV",
+      TRUE ~ team
+    )
+  ) %>%
   dplyr::arrange(team, position)
 
 message("Save stuff...")
@@ -73,5 +80,3 @@ readr::write_csv(roster, glue::glue("data/seasons/roster_{unique(roster$season)}
 rm(list = ls())
 
 message("DONE!")
-
-#
