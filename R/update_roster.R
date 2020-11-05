@@ -69,7 +69,9 @@ roster <- roster %>%
       team == "LAR" ~ "LA",
       team == "OAK" ~ "LV",
       TRUE ~ team
-    )
+    ),
+    height = stringr::str_remove_all(height, "\\\""),
+    height = stringr::str_replace_all(height, "'", "-")
   ) %>%
   dplyr::arrange(team, position)
 
