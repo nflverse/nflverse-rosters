@@ -100,3 +100,12 @@ purrr::walk(unique(join$season), function(x, df){
   saveRDS(filt, glue::glue("seasons/roster_{x}.rds"))
   readr::write_csv(filt, glue::glue("seasons/roster_{x}.csv"))
 }, join)
+
+# fix birth_date for older seasons
+purrr::walk(1999:2019, function(x){
+  r <- readRDS(glue::glue("data/seasons/roster_{x}.rds")) %>%
+    dplyr::mutate(birth_date = lubridate::as_date(birth_date, format = "%m/%d/%Y"))
+  saveRDS(r, glue::glue("data/seasons/roster_{x}.rds"))
+  readr::write_csv(r, glue::glue("data/seasons/roster_{x}.csv"))
+})
+
