@@ -19,6 +19,26 @@ roster <-
     ),
     index = 1:dplyr::n(),
     headshot_url = dplyr::if_else(is.na(espn_id), NA_character_, as.character(glue::glue("https://a.espncdn.com/combiner/i?img=/i/headshots/nfl/players/full/{espn_id}.png")))
+  ) %>%
+  dplyr::mutate(
+    # Tyler Conklin and Ryan Izzo could have swapped IDs and Christian Jones
+    # falsely gets assigned Chris Jones gsis_id
+    gsis_id = dplyr::case_when(
+      full_name == "Tyler Conklin" & gsis_id != "00-0034270" ~ "00-0034270",
+      full_name == "Ryan Izzo" & gsis_id != "00-0034439" ~ "00-0034439",
+      full_name == "Christian Jones" & gsis_id != "00-0031130" ~ "00-0031130",
+      TRUE ~ gsis_id
+    ),
+    espn_id = dplyr::case_when(
+      full_name == "Tyler Conklin" & espn_id != 3915486L ~ 3915486L,
+      full_name == "Ryan Izzo" & espn_id != 3122920L ~ 3122920L,
+      TRUE ~ espn_id
+    ),
+    yahoo_id = dplyr::case_when(
+      full_name == "Tyler Conklin" & yahoo_id != 31127L ~ 31127L,
+      full_name == "Ryan Izzo" & yahoo_id != 31220L ~ 31220L,
+      TRUE ~ yahoo_id
+    )
   )
 
 dupl_ids <- roster %>%
