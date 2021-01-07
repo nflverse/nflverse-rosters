@@ -39,7 +39,8 @@ roster <-
       full_name == "Ryan Izzo" & yahoo_id != 31220L ~ 31220L,
       TRUE ~ yahoo_id
     )
-  )
+  ) %>%
+  dplyr::left_join(readRDS("R/pff_gsis_map.rds"), by = "gsis_id")
 
 dupl_ids <- roster %>%
   dplyr::count(gsis_id) %>%
@@ -81,6 +82,7 @@ roster <- roster %>%
     sportradar_id,
     yahoo_id,
     rotowire_id,
+    pff_id,
     update_dt,
     headshot_url
   ) %>%
