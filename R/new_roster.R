@@ -109,3 +109,14 @@ purrr::walk(1999:2019, function(x){
   readr::write_csv(r, glue::glue("data/seasons/roster_{x}.csv"))
 })
 
+# join pff ids
+purrr::walk(1999:2019, function(x){
+  r <- readRDS(glue::glue("data/seasons/roster_{x}.rds")) %>%
+    dplyr::left_join(
+      readRDS(glue::glue("R/pff_gsis_map.rds")),
+      by = "gsis_id"
+    ) %>%
+    dplyr::select(season:rotowire_id, pff_id, dplyr::everything())
+  saveRDS(r, glue::glue("data/seasons/roster_{x}.rds"))
+  readr::write_csv(r, glue::glue("data/seasons/roster_{x}.csv"))
+})
