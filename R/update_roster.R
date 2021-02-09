@@ -83,6 +83,8 @@ roster <- roster %>%
     yahoo_id,
     rotowire_id,
     pff_id,
+    fantasy_data_id,
+    sleeper_id = player_id,
     update_dt,
     headshot_url
   ) %>%
