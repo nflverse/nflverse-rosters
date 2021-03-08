@@ -5,6 +5,7 @@ on:
   push:
     paths:
       - R/update_roster.R
+  workflow_dispatch:
 
 name: Seb's automated roster update
 
