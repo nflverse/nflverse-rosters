@@ -85,7 +85,8 @@ roster <- roster %>%
     pff_id,
     fantasy_data_id,
     sleeper_id = player_id,
-    update_dt,
+    # update_dt,
+    years_exp,
     headshot_url
   ) %>%
   dplyr::mutate(
@@ -100,10 +101,16 @@ roster <- roster %>%
   ) %>%
   dplyr::arrange(team, position)
 
-message("Save stuff...")
+message("Save stuff newest roster...")
 saveRDS(roster, glue::glue("data/seasons/roster_{unique(roster$season)}.rds"))
 readr::write_csv(roster, glue::glue("data/seasons/roster_{unique(roster$season)}.csv"))
 
-rm(list = ls())
+message("Build and safe combined roster file...")
+latest_season <- unique(roster$season)
+comb <- purrr::map_dfr(1999:latest_season, ~ readRDS(glue::glue("data/seasons/roster_{.x}.rds"))) %>%
+  dplyr::select(-update_dt)
+saveRDS(comb, "data/nflfastR-roster.rds")
+readr::write_csv(comb, "data/nflfastR-roster.csv.gz")
 
+rm(list = ls())
 message("DONE!")
