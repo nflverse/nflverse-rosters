@@ -26,5 +26,5 @@ readr::write_csv(filled_rosters, "data/nflfastR-roster.csv.gz")
 
 filled_rosters %>%
   dplyr::group_by(season) %T>%
-  dplyr::group_walk(~saveRDS(.x,file = glue::glue("data/seasons/roster_{.y$season}.rds"))) %T>%
+  dplyr::group_walk(~saveRDS(.x,file = glue::glue("data/seasons/roster_{.y$season}.rds"))) %>%
   dplyr::group_walk(~readr::write_csv(.x,file = glue::glue("data/seasons/roster_{.y$season}.csv")))
