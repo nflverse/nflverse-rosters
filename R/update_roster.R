@@ -108,7 +108,7 @@ readr::write_csv(roster, glue::glue("data/seasons/roster_{unique(roster$season)}
 message("Build and safe combined roster file...")
 latest_season <- unique(roster$season)
 comb <- purrr::map_dfr(1999:latest_season, ~ readRDS(glue::glue("data/seasons/roster_{.x}.rds"))) %>%
-  dplyr::select(-update_dt)
+  dplyr::select(-tidyselect::any_of(c("update_dt")))
 saveRDS(comb, "data/nflfastR-roster.rds")
 readr::write_csv(comb, "data/nflfastR-roster.csv.gz")
 
