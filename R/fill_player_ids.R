@@ -7,6 +7,10 @@
 original_rosters <- readRDS("data/nflfastR-roster.rds")
 
 filled_rosters <- readRDS("data/nflfastR-roster.rds") %>%
+  dplyr::left_join(manual_patch, by = c("gsis_id")) %>%
+  dplyr::mutate(sportradar_id = dplyr::coalesce(sportradar_id.x,sportradar_id.y),
+                sportradar_id.x = NULL,
+                sportradar_id.y = NULL) %>%
   dplyr::filter(!is.na(gsis_id)) %>%
   dplyr::group_by(gsis_id) %>%
   tidyr::fill(
