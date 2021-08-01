@@ -18,7 +18,8 @@ jobs:
       - uses: r-lib/actions/setup-r@v1
       - name: Install necessary packages
         run: |
-          install.packages(c("tidyverse", "lubridate", "glue", "jsonlite", "callr", "nflfastR"))
+          install.packages(c("tidyverse", "lubridate", "glue", "jsonlite", "callr", "nflfastR", "XML", "qs"))
+          install.packages("nflreadr", repos = "https://nflverse.r-universe.dev")
         shell: Rscript {0}
       - name: Run update script
         run: Rscript -e 'source("R/update_roster.R")'
@@ -27,4 +28,8 @@ jobs:
           git config --local user.email "actions@github.com"
           git config --local user.name "GitHub Actions"
           Rscript -e 'source("R/make_roster_commit.R")'
+      - name: Run update script
+        run: Rscript -e 'source("R/update-injuries.R")'
+      - name: Push results
+        run: |
           git push origin master || echo "No changes to commit"
