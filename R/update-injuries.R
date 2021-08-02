@@ -110,8 +110,8 @@ qs::qsave(
 rm(list = ls())
 message("DONE!")
 
-# source("R/git.R")
+source("R/git.R")
 message <-
   sprintf("Injury data updated %s (ET)",
           lubridate::now("America/New_York"))
-# git("commit", "-am", message)
+git("commit", "-am", message)
