@@ -1,11 +1,16 @@
+most_rec_season = stringi::stri_extract_all_regex(dir('data/seasons'), 'ir_[0-9]{4}') |>
+  unlist() |>
+  na.omit() |>
+  max() |>
+  (\(x)gsub('ir_', '', x))()
+most_rec_season = ifelse(is.na(most_rec_season),2009,most_rec_season)
+
 message("Fetching schedule...")
 
 weeks <- nflreadr::load_schedules() |>
-  dplyr::filter(season >= 2009) |>
-  dplyr::mutate(season_type = dplyr::case_when(
-    game_type == "REG" ~ "REG",
-    T ~ "POST"
-  )) |>
+  dplyr::filter(season >= most_rec_season) |>
+  dplyr::mutate(season_type = dplyr::case_when(game_type == "REG" ~ "REG",
+                                               T ~ "POST")) |>
   dplyr::rename(home_result = result) |>
   dplyr::group_by(season_type) |>
   dplyr::mutate(week = week - min(week) + 1) |>
@@ -22,7 +27,9 @@ scrape_ir <- function(year, week, season_type) {
   h <- httr::handle("https://www.nfl.info")
   r <- httr::GET(
     handle = h,
-    path = glue::glue("/nfldataexchange/dataexchange.asmx/getInjuryData?lseason={year}&lweek={week}&lseasontype={season_type}"),
+    path = glue::glue(
+      "/nfldataexchange/dataexchange.asmx/getInjuryData?lseason={year}&lweek={week}&lseasontype={season_type}"
+    ),
     httr::authenticate("media", "media"),
     url = NULL
   )
@@ -34,7 +41,8 @@ scrape_ir <- function(year, week, season_type) {
   return(ir_df)
 }
 
-ir_df <- purrr::pmap_dfr(list(weeks$season, weeks$week, weeks$season_type), scrape_ir) |>
+ir_df <-
+  purrr::pmap_dfr(list(weeks$season, weeks$week, weeks$season_type), scrape_ir) |>
   dplyr::mutate(
     ClubCode = dplyr::case_when(
       ClubCode == "ARZ" ~ "ARI",
@@ -48,10 +56,8 @@ ir_df <- purrr::pmap_dfr(list(weeks$season, weeks$week, weeks$season_type), scra
     ModifiedDt = lubridate::as_datetime(ModifiedDt, format = "%s"),
     dplyr::across(
       c(Injury1:InjuryStatus, PracticeStatus:Practice2),
-      ~ dplyr::case_when(
-        .x == "--" ~ NA_character_,
-        T ~ .x
-      )
+      ~ dplyr::case_when(.x == "--" ~ NA_character_,
+                         T ~ .x)
     )
   ) |>
   dplyr::select(
@@ -70,20 +76,42 @@ ir_df <- purrr::pmap_dfr(list(weeks$season, weeks$week, weeks$season_type), scra
     practice_secondary_injury = Practice2,
     practice_status = PracticeStatus,
     modified_dt = ModifiedDt
-  ) |>
-  tibble::as_tibble()
+  )
 
 message("Save injury reports...")
+
+ir_split <- ir_df |>
+  dplyr::group_split(season)
+
+purrr::walk(ir_split, function(x) {
+  saveRDS(x, glue::glue('data/seasons/ir_{unique(x$season)}.rds'))
+  readr::write_csv(x,
+                   glue::glue('data/seasons/ir_{unique(x$season)}.csv.gz'))
+  qs::qsave(
+    x,
+    glue::glue('data/seasons/ir_{unique(x$season)}.qs'),
+    preset = "custom",
+    algorithm = "zstd_stream",
+    compress_level = 22,
+    shuffle_control = 15
+  )
+})
+
 saveRDS(ir_df, "data/nflfastR-injuries.rds")
 readr::write_csv(ir_df, "data/nflfastR-injuries.csv.gz")
-qs::qsave(ir_df, "data/nflfastR-injuries.qs",
-          preset = "custom",
-          algorithm = "zstd_stream",
-          compress_level = 22,
-          shuffle_control = 15)
+qs::qsave(
+  ir_df,
+  "data/nflfastR-injuries.qs",
+  preset = "custom",
+  algorithm = "zstd_stream",
+  compress_level = 22,
+  shuffle_control = 15
+)
 rm(list = ls())
 message("DONE!")
 
-source("R/git.R")
-message <- sprintf("Injury data updated %s (ET)", lubridate::now("America/New_York"))
-git("commit", "-am", message)
+# source("R/git.R")
+message <-
+  sprintf("Injury data updated %s (ET)",
+          lubridate::now("America/New_York"))
+# git("commit", "-am", message)
