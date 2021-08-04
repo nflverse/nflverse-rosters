@@ -1,11 +1,11 @@
-most_rec_season = stringi::stri_extract_all_regex(dir('data/seasons'), 'ir_[0-9]{4}') |>
+most_rec_season = stringi::stri_extract_all_regex(dir('data/seasons'), 'injuries_[0-9]{4}') |>
   unlist() |>
   na.omit() |>
   max() |>
-  (\(x)gsub('ir_', '', x))()
+  (\(x)gsub('injuries_', '', x))()
 most_rec_season = ifelse(is.na(most_rec_season),2009,most_rec_season)
 
-message("Fetching schedule...")
+cli::cli_alert_info("Fetching schedule...")
 
 weeks <- nflreadr::load_schedules() |>
   dplyr::filter(season >= most_rec_season) |>
@@ -15,30 +15,36 @@ weeks <- nflreadr::load_schedules() |>
   dplyr::group_by(season_type) |>
   dplyr::mutate(week = week - min(week) + 1) |>
   dplyr::filter(!is.na(home_result)) |>
-  dplyr::group_by(season, week, season_type) |>
-  dplyr::summarise() |>
-  dplyr::arrange(season, season_type, week) |>
-  dplyr::ungroup()
+  dplyr::ungroup() |>
+  dplyr::distinct(season,week,season_type)
 
-message("Scraping injury reports...")
+cli::cli_alert_info("Scraping injury reports...")
 
 scrape_ir <- function(year, week, season_type) {
-  cli::cli_process_start("Loading {year}, {season_type} Week {week}")
+  cli::cli_process_start("Loading {year}, {season_type} Week {week}", on_exit = "done")
+
   h <- httr::handle("https://www.nfl.info")
-  r <- httr::GET(
-    handle = h,
-    path = glue::glue(
-      "/nfldataexchange/dataexchange.asmx/getInjuryData?lseason={year}&lweek={week}&lseasontype={season_type}"
-    ),
-    httr::authenticate("media", "media"),
-    url = NULL
-  )
-  ir_df <- httr::content(r) |>
-    XML::xmlParse() |>
-    XML::xmlToDataFrame()
-  rm(h) # close handle when finished, have had the api get mad when I don't close it
-  cli::cli_process_done()
-  return(ir_df)
+  on.exit(rm(h), add = TRUE) # close handle when function exits
+
+  r <- try({
+    httr::GET(
+      handle = h,
+      path = glue::glue(
+        "/nfldataexchange/dataexchange.asmx/getInjuryData?lseason={year}&lweek={week}&lseasontype={season_type}"
+      ),
+      httr::authenticate("media", "media"),
+      url = NULL) |>
+      httr::content() |>
+      XML::xmlParse() |>
+      XML::xmlToDataFrame()
+  }, silent = TRUE)
+
+  if(inherits(r,"try-error")) {
+    cli::cli_process_failed()
+    return(data.frame())
+  }
+
+  return(r)
 }
 
 ir_df <-
@@ -53,7 +59,7 @@ ir_df <-
       T ~ ClubCode
     ),
     full_name = paste(FootballName, LastName),
-    ModifiedDt = lubridate::as_datetime(ModifiedDt, format = "%s"),
+    date_modified = lubridate::as_datetime(ModifiedDt, format = "%s"),
     dplyr::across(
       c(Injury1:InjuryStatus, PracticeStatus:Practice2),
       ~ dplyr::case_when(.x == "--" ~ NA_character_,
@@ -69,27 +75,27 @@ ir_df <-
     full_name,
     first_name = FootballName,
     last_name = LastName,
-    ir_primary_injury = Injury1,
-    ir_secondary_injury = Injury2,
-    ir_status = InjuryStatus,
+    report_primary_injury = Injury1,
+    report_secondary_injury = Injury2,
+    report_status = InjuryStatus,
     practice_primary_injury = Practice1,
     practice_secondary_injury = Practice2,
     practice_status = PracticeStatus,
-    modified_dt = ModifiedDt
+    date_modified
   )
 
-message("Save injury reports...")
+cli::cli_alert_info("Saving injury reports...")
 
 ir_split <- ir_df |>
   dplyr::group_split(season)
 
 purrr::walk(ir_split, function(x) {
-  saveRDS(x, glue::glue('data/seasons/ir_{unique(x$season)}.rds'))
+  saveRDS(x, glue::glue('data/seasons/injuries_{unique(x$season)}.rds'))
   readr::write_csv(x,
-                   glue::glue('data/seasons/ir_{unique(x$season)}.csv.gz'))
+                   glue::glue('data/seasons/injuries_{unique(x$season)}.csv.gz'))
   qs::qsave(
     x,
-    glue::glue('data/seasons/ir_{unique(x$season)}.qs'),
+    glue::glue('data/seasons/injuries_{unique(x$season)}.qs'),
     preset = "custom",
     algorithm = "zstd_stream",
     compress_level = 22,
@@ -97,21 +103,18 @@ purrr::walk(ir_split, function(x) {
   )
 })
 
-saveRDS(ir_df, "data/nflfastR-injuries.rds")
-readr::write_csv(ir_df, "data/nflfastR-injuries.csv.gz")
+full_ir_df <- list.files("data/seasons",pattern = "injuries_[0-9]+\\.qs",full.names = TRUE) |>
+  purrr::map_dfr(qs::qread)
+
+saveRDS(full_ir_df, "data/nflfastR-injuries.rds")
+readr::write_csv(full_ir_df, "data/nflfastR-injuries.csv.gz")
 qs::qsave(
-  ir_df,
+  full_ir_df,
   "data/nflfastR-injuries.qs",
   preset = "custom",
   algorithm = "zstd_stream",
   compress_level = 22,
   shuffle_control = 15
 )
-rm(list = ls())
-message("DONE!")
 
-source("R/git.R")
-message <-
-  sprintf("Injury data updated %s (ET)",
-          lubridate::now("America/New_York"))
-git("commit", "-am", message)
+cli::cli_alert_success("Finished scraping injuries!")
