@@ -1,22 +1,24 @@
-most_rec_season = stringi::stri_extract_all_regex(dir('data/seasons'), 'injuries_[0-9]{4}') |>
+most_rec_season <- stringi::stri_extract_all_regex(dir("data/seasons"), "injuries_[0-9]{4}") |>
   unlist() |>
   na.omit() |>
   max() |>
-  (\(x)gsub('injuries_', '', x))()
-most_rec_season = ifelse(is.na(most_rec_season),2009,most_rec_season)
+  (\(x)gsub("injuries_", "", x))()
+most_rec_season <- ifelse(is.na(most_rec_season), 2009, most_rec_season)
 
 cli::cli_alert_info("Fetching schedule...")
 
 weeks <- nflreadr::load_schedules() |>
   dplyr::filter(season >= most_rec_season) |>
-  dplyr::mutate(season_type = dplyr::case_when(game_type == "REG" ~ "REG",
-                                               T ~ "POST")) |>
+  dplyr::mutate(season_type = dplyr::case_when(
+    game_type == "REG" ~ "REG",
+    T ~ "POST"
+  )) |>
   dplyr::rename(home_result = result) |>
   dplyr::group_by(season_type) |>
   dplyr::mutate(week = week - min(week) + 1) |>
   dplyr::filter(!is.na(home_result)) |>
   dplyr::ungroup() |>
-  dplyr::distinct(season,week,season_type)
+  dplyr::distinct(season, week, season_type)
 
 cli::cli_alert_info("Scraping injury reports...")
 
@@ -27,19 +29,19 @@ scrape_ir <- function(year, week, season_type) {
   on.exit(rm(h), add = TRUE) # close handle when function exits
 
   r <- try({
-    httr::GET(
-      handle = h,
-      path = glue::glue(
-        "/nfldataexchange/dataexchange.asmx/getInjuryData?lseason={year}&lweek={week}&lseasontype={season_type}"
-      ),
-      httr::authenticate("media", "media"),
+      httr::GET(
+        handle = h,
+        path = glue::glue(
+          "/nfldataexchange/dataexchange.asmx/getInjuryData?lseason={year}&lweek={week}&lseasontype={season_type}"
+        ),
+        httr::authenticate("media", "media"),
       url = NULL) |>
-      httr::content() |>
-      XML::xmlParse() |>
-      XML::xmlToDataFrame()
+        httr::content() |>
+        XML::xmlParse() |>
+        XML::xmlToDataFrame()
   }, silent = TRUE)
 
-  if(inherits(r,"try-error")) {
+  if (inherits(r, "try-error")) {
     cli::cli_process_failed()
     return(data.frame())
   }
@@ -62,8 +64,10 @@ ir_df <-
     date_modified = lubridate::as_datetime(ModifiedDt, format = "%s"),
     dplyr::across(
       c(Injury1:InjuryStatus, PracticeStatus:Practice2),
-      ~ dplyr::case_when(.x == "--" ~ NA_character_,
-                         T ~ .x)
+      ~ dplyr::case_when(
+        .x == "--" ~ NA_character_,
+        T ~ .x
+      )
     )
   ) |>
   dplyr::select(
@@ -90,20 +94,11 @@ ir_split <- ir_df |>
   dplyr::group_split(season)
 
 purrr::walk(ir_split, function(x) {
-  saveRDS(x, glue::glue('data/seasons/injuries_{unique(x$season)}.rds'))
-  readr::write_csv(x,
-                   glue::glue('data/seasons/injuries_{unique(x$season)}.csv.gz'))
-  qs::qsave(
-    x,
-    glue::glue('data/seasons/injuries_{unique(x$season)}.qs'),
-    preset = "custom",
-    algorithm = "zstd_stream",
-    compress_level = 22,
-    shuffle_control = 15
-  )
+  saveRDS(x, glue::glue("data/seasons/injuries_{unique(x$season)}.rds"))
+  readr::write_csv(x, glue::glue("data/seasons/injuries_{unique(x$season)}.csv.gz"))
 })
 
-full_ir_df <- list.files("data/seasons",pattern = "injuries_[0-9]+\\.qs",full.names = TRUE) |>
+full_ir_df <- list.files("data/seasons", pattern = "injuries_[0-9]+\\.qs", full.names = TRUE) |>
   purrr::map_dfr(qs::qread)
 
 saveRDS(full_ir_df, "data/nflfastR-injuries.rds")
