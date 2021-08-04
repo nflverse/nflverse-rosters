@@ -47,3 +47,15 @@ jobs:
           git add data
           git commit -m "Automated injury report updates `date`" || echo "No changes to commit"
           git push || echo "No changes to commit"
+
+      - name: Update Depth Charts
+        run: Rscript -e 'source("R/update-depth-charts.R")'
+
+      - name: Commit and push dc data
+        run: |
+          git config --local user.email "actions@github.com"
+          git config --local user.name "GitHub Actions"
+          git pull
+          git add data
+          git commit -m "Automated depth chart updates `date`" || echo "No changes to commit"
+          git push || echo "No changes to commit"
