@@ -21,7 +21,7 @@ jobs:
       - name: Install packages
         run: |
           install.packages(c("tidyverse", "lubridate", "glue", "jsonlite", "callr", "nflfastR", "XML", "qs"))
-          install.packages("nflreadr", repos = "https://nflverse.r-universe.dev", dependencies = TRUE)
+          install.packages("nflreadr", repos = c("https://cran.rstudio.com","https://nflverse.r-universe.dev"))
         shell: Rscript {0}
 
       - name: Update rosters
