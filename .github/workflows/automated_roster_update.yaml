@@ -15,18 +15,18 @@ jobs:
     name: Update roster
     runs-on: macOS-latest
     steps:
-      - uses: actions/checkout@v2    
+      - uses: actions/checkout@v2
       - uses: r-lib/actions/setup-r@v1
-      
+
       - name: Install packages
         run: |
           install.packages(c("tidyverse", "lubridate", "glue", "jsonlite", "callr", "nflfastR", "XML", "qs"))
-          install.packages("nflreadr", repos = "https://nflverse.r-universe.dev")
+          install.packages("nflreadr", repos = "https://nflverse.r-universe.dev", dependencies = TRUE)
         shell: Rscript {0}
-        
+
       - name: Update rosters
         run: Rscript -e 'source("R/update_roster.R")'
-      
+
       - name: Commit and push roster data
         run: |
           git config --local user.email "actions@github.com"
@@ -35,10 +35,10 @@ jobs:
           git add data
           git commit -m "Automated roster updates `date`" || echo "No changes to commit"
           git push || echo "No changes to commit"
-          
+
       - name: Update injuries
         run: Rscript -e 'source("R/update-injuries.R")'
-        
+
       - name: Commit and push injury data
         run: |
           git config --local user.email "actions@github.com"
