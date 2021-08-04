@@ -98,8 +98,8 @@ purrr::walk(ir_split, function(x) {
   readr::write_csv(x, glue::glue("data/seasons/injuries_{unique(x$season)}.csv.gz"))
 })
 
-full_ir_df <- list.files("data/seasons", pattern = "injuries_[0-9]+\\.qs", full.names = TRUE) |>
-  purrr::map_dfr(qs::qread)
+full_ir_df <- list.files("data/seasons", pattern = "injuries_[0-9]+\\.rds", full.names = TRUE) |>
+  purrr::map_dfr(readRDS)
 
 saveRDS(full_ir_df, "data/nflfastR-injuries.rds")
 readr::write_csv(full_ir_df, "data/nflfastR-injuries.csv.gz")
