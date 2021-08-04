@@ -1,4 +1,4 @@
-seasons_to_scrape <- 2001:nflreadr:::most_recent_season()
+seasons_to_scrape <- nflreadr:::most_recent_season()
 
 cli::cli_alert_info("Scraping teams...")
 
