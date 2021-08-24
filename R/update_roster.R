@@ -116,8 +116,7 @@ rb_te_ids <- comb |>
   dplyr::filter(position %in% c("RB", "FB", "TE"), !is.na(gsis_id)) |>
   dplyr::select(gsis_id) |>
   dplyr::distinct() |>
-  dplyr::arrange(dplyr::desc(gsis_id)) |>
-  dplyr::pull(gsis_id)
+  dplyr::arrange(dplyr::desc(gsis_id))
 
 qs::qsave(rb_te_ids, 'data/nflfastR-RB_TE_ids.qs',
           preset = "custom",
