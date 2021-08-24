@@ -111,5 +111,19 @@ comb <- purrr::map_dfr(1999:latest_season, ~ readRDS(glue::glue("data/seasons/ro
 saveRDS(comb, "data/nflfastR-roster.rds")
 readr::write_csv(comb, "data/nflfastR-roster.csv.gz")
 
+# Safe RB & TE gsis IDs for usage in RACR computation
+rb_te_ids <- comb |>
+  dplyr::filter(position %in% c("RB", "FB", "TE"), !is.na(gsis_id)) |>
+  dplyr::select(gsis_id) |>
+  dplyr::distinct() |>
+  dplyr::arrange(dplyr::desc(gsis_id)) |>
+  dplyr::pull(gsis_id)
+
+qs::qsave(rb_te_ids, 'data/nflfastR-RB_TE_ids.qs',
+          preset = "custom",
+          algorithm = "zstd_stream",
+          compress_level = 22,
+          shuffle_control = 15)
+
 rm(list = ls())
 cli::cli_alert_info("DONE!")
