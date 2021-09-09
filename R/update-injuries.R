@@ -8,22 +8,23 @@ most_rec_season <- ifelse(is.na(most_rec_season), 2009, most_rec_season)
 cli::cli_alert_info("Fetching schedule...")
 
 weeks <- nflreadr::load_schedules() |>
+  dplyr::mutate(game_type = dplyr::case_when(game_type == 'REG' ~ 'REG',
+                                             game_type %in% c('WC','DIV','CON','SB') ~ 'POST',
+                                             T~NA_character_)) |>
   dplyr::filter(season >= most_rec_season) |>
-  dplyr::mutate(season_type = dplyr::case_when(
-    game_type == "REG" ~ "REG",
-    T ~ "POST"
-  )) |>
-  dplyr::rename(home_result = result) |>
-  dplyr::group_by(season_type) |>
-  dplyr::mutate(week = week - min(week) + 1) |>
-  dplyr::filter(!is.na(home_result)) |>
+  dplyr::mutate(week = as.numeric(as.factor(week))) |>
   dplyr::ungroup() |>
-  dplyr::distinct(season, week, season_type)
+  dplyr::group_by(season, game_type, week) |>
+  dplyr::summarise(games_played = sum(!is.na(result))) |>
+  dplyr::ungroup() |>
+  dplyr::mutate(filter_week = which(games_played == 0)[1]) |>
+  dplyr::filter(dplyr::row_number() <= filter_week) |>
+  dplyr::select(c(season, game_type = game_type, week))
 
 cli::cli_alert_info("Scraping injury reports...")
 
-scrape_ir <- function(year, week, season_type) {
-  cli::cli_process_start("Loading {year}, {season_type} Week {week}", on_exit = "done")
+scrape_ir <- function(year, week, game_type) {
+  cli::cli_process_start("Loading {year}, {game_type} Week {week}", on_exit = "done")
 
   h <- httr::handle("https://www.nfl.info")
   on.exit(rm(h), add = TRUE) # close handle when function exits
@@ -32,7 +33,7 @@ scrape_ir <- function(year, week, season_type) {
       httr::GET(
         handle = h,
         path = glue::glue(
-          "/nfldataexchange/dataexchange.asmx/getInjuryData?lseason={year}&lweek={week}&lseasontype={season_type}"
+          "/nfldataexchange/dataexchange.asmx/getInjuryData?lseason={year}&lweek={week}&lseasontype={game_type}"
         ),
         httr::authenticate("media", "media"),
       url = NULL) |>
@@ -50,7 +51,7 @@ scrape_ir <- function(year, week, season_type) {
 }
 
 ir_df <-
-  purrr::pmap_dfr(list(weeks$season, weeks$week, weeks$season_type), scrape_ir) |>
+  purrr::pmap_dfr(list(weeks$season, weeks$week, weeks$game_type), scrape_ir) |>
   dplyr::mutate(
     ClubCode = dplyr::case_when(
       ClubCode == "ARZ" ~ "ARI",
