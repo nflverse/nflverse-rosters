@@ -118,7 +118,7 @@ readr::write_csv(comb, "data/nflfastR-roster.csv.gz")
 
 # update older seasons
 # we run this manually if necessary
-# purrr::walk(1999:2021, function(i, comb){
+# purrr::walk(1999:(latest_season-1), function(i, comb){
 #   roster <- comb |> dplyr::filter(season == i)
 #   saveRDS(roster, glue::glue("data/seasons/roster_{unique(roster$season)}.rds"))
 #   readr::write_csv(roster, glue::glue("data/seasons/roster_{unique(roster$season)}.csv"))
