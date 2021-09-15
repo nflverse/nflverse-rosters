@@ -109,9 +109,20 @@ readr::write_csv(roster, glue::glue("data/seasons/roster_{unique(roster$season)}
 cli::cli_alert_info("Build and safe combined roster file...")
 latest_season <- unique(roster$season)
 comb <- purrr::map_dfr(1999:latest_season, ~ readRDS(glue::glue("data/seasons/roster_{.x}.rds"))) |>
-  dplyr::select(-tidyselect::any_of(c("update_dt")))
+  dplyr::select(-tidyselect::any_of(c("update_dt"))) |>
+  dplyr::left_join(readRDS("R/pfr_gsis_map.rds"), by = "gsis_id", suffix = c("", "_joined")) |>
+  dplyr::mutate(pfr_id = dplyr::if_else(is.na(pfr_id), pfr_id_joined, pfr_id)) |>
+  dplyr::select(-pfr_id_joined)
 saveRDS(comb, "data/nflfastR-roster.rds")
 readr::write_csv(comb, "data/nflfastR-roster.csv.gz")
+
+# update older seasons
+# we run this manually if necessary
+# purrr::walk(1999:2021, function(i, comb){
+#   roster <- comb |> dplyr::filter(season == i)
+#   saveRDS(roster, glue::glue("data/seasons/roster_{unique(roster$season)}.rds"))
+#   readr::write_csv(roster, glue::glue("data/seasons/roster_{unique(roster$season)}.csv"))
+# }, comb = comb)
 
 # Safe RB & FB gsis IDs for usage in RACR computation
 rb_ids <- comb |>
