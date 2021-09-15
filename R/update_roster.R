@@ -39,7 +39,8 @@ roster <-
       TRUE ~ yahoo_id
     )
   ) |>
-  dplyr::left_join(readRDS("R/pff_gsis_map.rds"), by = "gsis_id")
+  dplyr::left_join(readRDS("R/pff_gsis_map.rds"), by = "gsis_id") |>
+  dplyr::left_join(readRDS("R/pfr_gsis_map.rds"), by = "gsis_id")
 
 dupl_ids <- roster |>
   dplyr::count(gsis_id) |>
@@ -82,6 +83,7 @@ roster <- roster |>
     yahoo_id,
     rotowire_id,
     pff_id,
+    pfr_id,
     fantasy_data_id,
     sleeper_id = player_id,
     # update_dt,
