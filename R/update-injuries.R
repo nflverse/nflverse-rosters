@@ -63,6 +63,8 @@ ir_df <-
     ),
     full_name = paste(FootballName, LastName),
     date_modified = lubridate::as_datetime(ModifiedDt, format = "%s"),
+    Week = dplyr::case_when(SeasonType == 'POST' ~ as.integer(Week) + max(as.integer(Week[SeasonType == 'REG'])),
+                     T~as.integer(Week)),
     dplyr::across(
       c(Injury1:InjuryStatus, PracticeStatus:Practice2),
       ~ dplyr::case_when(
@@ -73,6 +75,7 @@ ir_df <-
   ) |>
   dplyr::select(
     season = Season,
+    season_type = SeasonType,
     team = ClubCode,
     week = Week,
     gsis_id = GsisID,
