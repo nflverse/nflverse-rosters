@@ -1,8 +1,9 @@
-most_rec_season <- stringi::stri_extract_all_regex(dir("data/seasons"), "depth_charts__[0-9]{4}") |>
+most_rec_season <- stringi::stri_extract_all_regex(dir("data/seasons"), "depth_charts_[0-9]{4}") |>
   unlist() |>
   na.omit() |>
   max() |>
   (\(x)gsub("depth_charts_", "", x))()
+
 most_rec_season <- ifelse(is.na(most_rec_season), 2001, most_rec_season)
 
 seasons_to_scrape <- c(most_rec_season:nflreadr:::most_recent_season())
