@@ -3,7 +3,10 @@ most_rec_season <- stringi::stri_extract_all_regex(dir("data/seasons"), "injurie
   na.omit() |>
   max() |>
   (\(x)gsub("injuries_", "", x))()
+
 most_rec_season <- ifelse(is.na(most_rec_season), 2009, most_rec_season)
+
+# most_rec_season <- 2009
 
 cli::cli_alert_info("Fetching schedule...")
 
