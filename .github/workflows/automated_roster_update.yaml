@@ -8,7 +8,7 @@ on:
       - R/update-injuries.R
   workflow_dispatch:
 
-name: Seb's automated roster update
+name: update_rosters
 
 jobs:
   update:
