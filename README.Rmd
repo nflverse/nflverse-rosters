@@ -14,21 +14,22 @@ library(dplyr)
 
 # nflfastR-roster
 
-This repo hosts roster data intended to be used with [nflfastR](https://mrcaseb.github.io/nflfastR/).
+This repo hosts roster data which can be accessed with [nflreadr](https://nflreadr.nflverse.com).
 
-We used to combine
+This data is primarily sourced from the NFL.com API and supplemented by the free-to-use [Sleeper API](https://docs.sleeper.app/#fetch-all-players). 
 
-* the legacy roster data from the [nflfastR data repo](https://github.com/guga31bb/nflfastR-data/tree/master/roster-data) (for the seasons 1999 to 2019) and
+Here is an example of using this data!
 
-* weekly scraped rosters from [nfl.com](https://www.nfl.com/teams/) (beginning with season 2020).
-
-However, in the meanwhile we were able to decode the special player IDs (UUIDs version 4) in the nflfastR play-by-play data using the new funtion `nflfastR::decode_player_ids()`. Therefore the function `nflfastR::fast_scraper_roster()` returned to [nflfastR](https://mrcaseb.github.io/nflfastR/) providing roster data from the  free to use [Sleeper API](https://docs.sleeper.app/#fetch-all-players).
-
-The following table shows an example output of all 2020 QBs of the Kansas City Chiefs. The variable `gsis_id` can be used to join the data to nflfastR play-by-play data.
-
-```{r, echo=FALSE}
-nflfastR::fast_scraper_roster(2020) %>% filter(team == "KC", position == "QB") %>% knitr::kable()
+```{r, eval = FALSE}
+library(dplyr)
+library(nflreadr)
+nflreadr::load_rosters(2020) %>% 
+  dplyr::filter(team == "KC", position == "QB") 
+```
+```{r echo = FALSE}
+nflreadr::load_rosters(2020) %>% 
+  dplyr::filter(team == "KC", position == "QB") %>% 
+  knitr::kable()
 ```
 
-Please note:
-This repo updates itself every day at 3AM ET.
+You can see the status of this repository on the [nflverse status page](https://github.com/nflverse/status).
