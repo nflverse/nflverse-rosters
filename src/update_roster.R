@@ -9,7 +9,7 @@ roster <-
   dplyr::filter(!(is.na(team) & is.na(gsis_id)),
                 !player_id %in% nflreadr::load_teams()$team_abbr,
                 first_name != "Duplicate") |>
-  dplyr::left_join(readRDS("R/na_map.rds"), by = c("sportradar_id" = "id")) |>
+  dplyr::left_join(readRDS("src/na_map.rds"), by = c("sportradar_id" = "id")) |>
   dplyr::mutate(
     gsis_id = dplyr::if_else(is.na(gsis_id), gsis, gsis_id),
     update_dt = lubridate::now("America/New_York"),
@@ -40,7 +40,7 @@ roster <-
       TRUE ~ yahoo_id
     )
   ) |>
-  dplyr::left_join(readRDS("R/headshot_gsis_map.rds"), by = "gsis_id") |>
+  dplyr::left_join(readRDS("src/headshot_gsis_map.rds"), by = "gsis_id") |>
   dplyr::mutate(
     headshot_url = dplyr::case_when(
       !is.na(headshot_nfl) ~ headshot_nfl,
@@ -48,8 +48,8 @@ roster <-
       TRUE ~ NA_character_
     )
   ) |>
-  dplyr::left_join(readRDS("R/pff_gsis_map.rds"), by = "gsis_id") |>
-  dplyr::left_join(readRDS("R/pfr_gsis_map.rds"), by = "gsis_id")
+  dplyr::left_join(readRDS("src/pff_gsis_map.rds"), by = "gsis_id") |>
+  dplyr::left_join(readRDS("src/pfr_gsis_map.rds"), by = "gsis_id")
 
 dupl_ids <- roster |>
   dplyr::count(gsis_id) |>
@@ -119,7 +119,7 @@ cli::cli_alert_info("Build and safe combined roster file...")
 latest_season <- unique(roster$season)
 comb <- purrr::map_dfr(1999:latest_season, ~ readRDS(glue::glue("data/seasons/roster_{.x}.rds"))) |>
   dplyr::select(-tidyselect::any_of(c("update_dt"))) |>
-  dplyr::left_join(readRDS("R/pfr_gsis_map.rds"), by = "gsis_id", suffix = c("", "_joined")) |>
+  dplyr::left_join(readRDS("src/pfr_gsis_map.rds"), by = "gsis_id", suffix = c("", "_joined")) |>
   dplyr::mutate(pfr_id = dplyr::if_else(is.na(pfr_id), pfr_id_joined, pfr_id)) |>
   dplyr::select(-pfr_id_joined)
 saveRDS(comb, "data/nflfastR-roster.rds")
