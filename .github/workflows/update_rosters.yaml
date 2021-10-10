@@ -29,7 +29,7 @@ jobs:
           extra-packages: nflverse/nflreadr
 
       - name: Update rosters
-        run: Rscript -e 'source("R/update_roster.R")'
+        run: Rscript -e 'source("src/update_roster.R")'
 
       - name: Commit and push roster data
         run: |
