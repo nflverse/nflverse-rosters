@@ -18,8 +18,7 @@ roster <-
       lubridate::year(update_dt) - 1,
       lubridate::year(update_dt)
     ),
-    index = 1:dplyr::n(),
-    headshot_url = dplyr::if_else(is.na(espn_id), NA_character_, as.character(glue::glue("https://a.espncdn.com/combiner/i?img=/i/headshots/nfl/players/full/{espn_id}.png")))
+    index = 1:dplyr::n()
   ) |>
   dplyr::mutate(
     # Tyler Conklin and Ryan Izzo could have swapped IDs and Christian Jones
@@ -39,6 +38,14 @@ roster <-
       full_name == "Tyler Conklin" & yahoo_id != 31127L ~ 31127L,
       full_name == "Ryan Izzo" & yahoo_id != 31220L ~ 31220L,
       TRUE ~ yahoo_id
+    )
+  ) |>
+  dplyr::left_join(readRDS("R/headshot_gsis_map.rds"), by = "gsis_id") |>
+  dplyr::mutate(
+    headshot_url = dplyr::case_when(
+      !is.na(headshot_nfl) ~ headshot_nfl,
+      !is.na(espn_id) ~ as.character(glue::glue("https://a.espncdn.com/combiner/i?img=/i/headshots/nfl/players/full/{espn_id}.png")),
+      TRUE ~ NA_character_
     )
   ) |>
   dplyr::left_join(readRDS("R/pff_gsis_map.rds"), by = "gsis_id") |>

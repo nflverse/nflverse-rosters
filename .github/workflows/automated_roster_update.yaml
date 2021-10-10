@@ -1,0 +1,61 @@
+on:
+  #schedule:
+    # runs every day at 7:00 AM UTC
+  #  - cron:  '0 7 * * *'
+  #push:
+  #  paths:
+  #    - R/update_roster.R
+  #    - R/update-injuries.R
+  workflow_dispatch:
+
+name: update_rosters
+
+jobs:
+  update:
+    name: Update roster
+    runs-on: macOS-latest
+    steps:
+      - uses: actions/checkout@v2
+      - uses: r-lib/actions/setup-r@v1
+
+      - name: Install packages
+        run: |
+          install.packages(c("tidyverse", "lubridate", "glue", "jsonlite", "callr", "nflfastR", "XML", "qs"))
+          install.packages("nflreadr", repos = c("https://cran.rstudio.com","https://nflverse.r-universe.dev"))
+        shell: Rscript {0}
+
+      - name: Update rosters
+        run: Rscript -e 'source("R/update_roster.R")'
+
+      - name: Commit and push roster data
+        run: |
+          git config --local user.email "actions@github.com"
+          git config --local user.name "GitHub Actions"
+          git pull
+          git add data
+          git commit -m "Automated roster updates `date`" || echo "No changes to commit"
+          git push || echo "No changes to commit"
+
+      - name: Update injuries
+        run: Rscript -e 'source("R/update-injuries.R")'
+
+      - name: Commit and push injury data
+        run: |
+          git config --local user.email "actions@github.com"
+          git config --local user.name "GitHub Actions"
+          git pull
+          git add data
+          git commit -m "Automated injury report updates `date`" || echo "No changes to commit"
+          git push || echo "No changes to commit"
+
+      - name: Update Depth Charts
+        run: Rscript -e 'source("R/update-depth-charts.R")'
+
+      - name: Commit and push dc data
+        run: |
+          git config --local user.email "actions@github.com"
+          git config --local user.name "GitHub Actions"
+          git pull
+          git add data
+          git commit -m "Automated depth chart updates `date`" || echo "No changes to commit"
+          git push || echo "No changes to commit"
