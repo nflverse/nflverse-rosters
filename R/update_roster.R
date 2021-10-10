@@ -6,7 +6,9 @@ roster <-
   purrr::map_dfr(raw_json, function(x) purrr::map(x, function(y) ifelse(is.null(y), NA, y))) |>
   dplyr::na_if("") |>
   dplyr::mutate_if(is.character, stringr::str_trim) |>
-  dplyr::filter(!(is.na(team) & is.na(gsis_id)), !player_id %in% nflfastR::teams_colors_logos$team_abbr, first_name != "Duplicate") |>
+  dplyr::filter(!(is.na(team) & is.na(gsis_id)),
+                !player_id %in% nflreadr::load_teams()$team_abbr,
+                first_name != "Duplicate") |>
   dplyr::left_join(readRDS("R/na_map.rds"), by = c("sportradar_id" = "id")) |>
   dplyr::mutate(
     gsis_id = dplyr::if_else(is.na(gsis_id), gsis, gsis_id),
