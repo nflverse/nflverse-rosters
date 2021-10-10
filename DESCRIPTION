@@ -28,7 +28,8 @@ Imports:
     readr (>= 2.0.0),
     stringr (>= 1.4.0),
     tidyr,
-    XML (>= 3.99.0)
+    XML (>= 3.99.0),
+    xml2
 Remotes:
     nflverse/nflreadr
 Encoding: UTF-8
