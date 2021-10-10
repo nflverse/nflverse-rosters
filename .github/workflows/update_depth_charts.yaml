@@ -29,7 +29,7 @@ jobs:
           extra-packages: nflverse/nflreadr
 
       - name: Update Depth Charts
-        run: Rscript -e 'source("R/update-depth-charts.R")'
+        run: Rscript -e 'source("src/update-depth-charts.R")'
 
       - name: Commit and push dc data
         run: |
