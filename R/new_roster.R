@@ -5,8 +5,11 @@ raw_json <- jsonlite::fromJSON("https://api.sleeper.app/v1/players/nfl")
 roster <-
   purrr::map_dfr(raw_json, function(x) purrr::map(x, function(y) ifelse(is.null(y), NA, y))) %>%
   dplyr::na_if("") %>%
-  dplyr::filter(!(is.na(team) & is.na(gsis_id)), !player_id %in% nflfastR::teams_colors_logos$team_abbr, first_name != "Duplicate") %>%
-  dplyr::filter(!player_id %in% nflfastR::teams_colors_logos$team_abbr, first_name != "Duplicate") %>%
+  dplyr::filter(!(is.na(team) & is.na(gsis_id)),
+                !player_id %in% nflreadr::load_teams()$team_abbr,
+                first_name != "Duplicate") %>%
+  dplyr::filter(!player_id %in% nflreadr::load_teams()$team_abbr,
+                first_name != "Duplicate") %>%
   dplyr::mutate(
     update_dt = lubridate::now("America/New_York"),
     season = dplyr::if_else(
