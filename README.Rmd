@@ -16,20 +16,16 @@ library(dplyr)
 
 This repo hosts roster data which can be accessed with [nflreadr](https://nflreadr.nflverse.com).
 
+You can see the status of this repository on the [nflverse status page](https://github.com/nflverse/status).
+
 This data is primarily sourced from the NFL.com API and supplemented by the free-to-use [Sleeper API](https://docs.sleeper.app/#fetch-all-players). 
 
 Here is an example of using this data!
 
-```{r, eval = FALSE}
+```{r}
 library(dplyr)
 library(nflreadr)
 nflreadr::load_rosters(2020) %>% 
   dplyr::filter(team == "KC", position == "QB") 
 ```
-```{r echo = FALSE}
-nflreadr::load_rosters(2020) %>% 
-  dplyr::filter(team == "KC", position == "QB") %>% 
-  knitr::kable()
-```
 
-You can see the status of this repository on the [nflverse status page](https://github.com/nflverse/status).
