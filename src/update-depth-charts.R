@@ -1,4 +1,12 @@
-seasons_to_scrape <- nflreadr:::most_recent_season()
+most_rec_season <- stringi::stri_extract_all_regex(dir("data/seasons"), "depth_charts_[0-9]{4}") |>
+  unlist() |>
+  na.omit() |>
+  max() |>
+  (\(x)gsub("depth_charts_", "", x))()
+
+most_rec_season <- ifelse(is.na(most_rec_season), 2001, most_rec_season)
+
+seasons_to_scrape <- c(most_rec_season:nflreadr:::most_recent_season())
 
 cli::cli_alert_info("Scraping teams...")
 
@@ -61,7 +69,9 @@ if (nrow(dc_df) > 0){
         T ~ ClubCode
       ),
       full_name = paste(FootballName, LastName),
-      dplyr::across(c(Season, Week, DepthTeam, JerseyNumber), as.integer)
+      dplyr::across(c(Season, Week, DepthTeam, JerseyNumber), as.integer),
+      Week = dplyr::case_when(SeasonType == 'POST' ~ as.integer(Week) + max(as.integer(Week[SeasonType == 'REG'])),
+                              T~as.integer(Week)),
     ) |>
     dplyr::select(
       season = Season,

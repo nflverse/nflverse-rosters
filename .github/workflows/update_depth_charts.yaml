@@ -1,0 +1,41 @@
+on:
+  schedule:
+    # runs every day at 7:00 AM UTC
+    - cron:  '0 7 * * *'
+  # push:
+    # paths:
+      # - R/update_roster.R
+      #- R/update-injuries.R
+  workflow_dispatch:
+
+name: Update-Depth-Charts
+
+jobs:
+  Update-Depth-Charts:
+    name: Update-Depth-Charts
+    runs-on: ubuntu-latest
+    env:
+      GITHUB_PAT: ${{ secrets.GITHUB_TOKEN }}
+
+    steps:
+      - uses: actions/checkout@v2
+
+      - uses: r-lib/actions/setup-r@v1
+        with:
+          use-public-rspm: true
+
+      - uses: r-lib/actions/setup-r-dependencies@v1
+        with:
+          extra-packages: nflverse/nflreadr
+
+      - name: Update Depth Charts
+        run: Rscript -e 'source("src/update-depth-charts.R")'
+
+      - name: Commit and push dc data
+        run: |
+          git config --local user.email "actions@github.com"
+          git config --local user.name "GitHub Actions"
+          git pull
+          git add data
+          git commit -m "Automated depth chart updates `date`" || echo "No changes to commit"
+          git push || echo "No changes to commit"
