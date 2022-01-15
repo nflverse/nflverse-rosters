@@ -70,8 +70,8 @@ if (nrow(dc_df) > 0){
       ),
       full_name = paste(FootballName, LastName),
       dplyr::across(c(Season, Week, DepthTeam, JerseyNumber), as.integer),
-      Week = dplyr::case_when(SeasonType == 'POST' ~ as.integer(Week) + max(as.integer(Week[SeasonType == 'REG'])),
-                              T~as.integer(Week)),
+      # Week = dplyr::case_when(SeasonType == 'POST' ~ as.integer(Week) + max(as.integer(Week[SeasonType == 'REG'])),
+      #                         T~as.integer(Week)),
     ) |>
     dplyr::select(
       season = Season,
