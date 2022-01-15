@@ -13,12 +13,14 @@ cli::cli_alert_info("Fetching schedule...")
 weeks <- nflreadr::load_schedules() |>
   dplyr::mutate(game_type = dplyr::case_when(game_type == 'REG' ~ 'REG',
                                              game_type %in% c('WC','DIV','CON','SB') ~ 'POST',
-                                             T~NA_character_)) |>
+                                             T~NA_character_),
+                game_type = factor(game_type,levels=c('REG','POST')),
+                week = dplyr::case_when(game_type == 'REG' ~ as.integer(week),
+                                        T ~ as.integer(week - max(week[game_type=='REG'])))) |>
   dplyr::filter(season >= most_rec_season) |>
-  dplyr::mutate(week = as.numeric(as.factor(week))) |>
   dplyr::ungroup() |>
   dplyr::group_by(season, game_type, week) |>
-  dplyr::summarise(games_played = sum(!is.na(result))) |>
+  dplyr::summarise(games_played = sum(!is.na(result)),.groups="keep") |>
   dplyr::ungroup() |>
   dplyr::mutate(filter_week = which(games_played == 0)[1]) |>
   dplyr::filter(dplyr::row_number() <= filter_week) |>
@@ -66,8 +68,6 @@ ir_df <-
     ),
     full_name = paste(FootballName, LastName),
     date_modified = lubridate::as_datetime(ModifiedDt, format = "%s"),
-    Week = dplyr::case_when(SeasonType == 'POST' ~ as.integer(Week) + max(as.integer(Week[SeasonType == 'REG'])),
-                     T~as.integer(Week)),
     dplyr::across(
       c(Injury1:InjuryStatus, PracticeStatus:Practice2),
       ~ dplyr::case_when(
