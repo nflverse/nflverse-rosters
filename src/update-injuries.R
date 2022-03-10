@@ -2,7 +2,7 @@ most_rec_season <- stringi::stri_extract_all_regex(dir("data/seasons"), "injurie
   unlist() |>
   na.omit() |>
   max() |>
-  (\(x)gsub("injuries_", "", x))()
+  (\(x)            gsub("injuries_", "", x))()
 
 most_rec_season <- ifelse(is.na(most_rec_season), 2009, most_rec_season)
 
@@ -101,10 +101,12 @@ if(nrow(weeks) > 0){
   ir_split <- ir_df |>
     dplyr::group_split(season)
 
-  purrr::walk(ir_split, function(x) {
-    saveRDS(x, glue::glue("data/seasons/injuries_{unique(x$season)}.rds"))
-    readr::write_csv(x, glue::glue("data/seasons/injuries_{unique(x$season)}.csv.gz"))
-  })
+purrr::walk(ir_split, function(x) {
+  attr(x,"nflverse_timestamp") <- Sys.time()
+  attr(x,"nflverse_type") <- "injury reports"
+  saveRDS(x, glue::glue("data/seasons/injuries_{unique(x$season)}.rds"))
+  readr::write_csv(x, glue::glue("data/seasons/injuries_{unique(x$season)}.csv.gz"))
+})
 
   full_ir_df <- list.files("data/seasons", pattern = "injuries_[0-9]+\\.rds", full.names = TRUE) |>
     purrr::map_dfr(readRDS)
@@ -121,7 +123,29 @@ if(nrow(weeks) > 0){
   )
   cli::cli_alert_success("Finished scraping injuries!")
 } else {
+
   cli::cli_alert_warning("Nothing to load. It's probably offseason.")
+
 }
 
+attr(full_ir_df,"nflverse_timestamp") <- Sys.time()
+attr(full_ir_df,"nflverse_type") <- "injury reports"
 
+saveRDS(full_ir_df, "data/nflfastR-injuries.rds")
+readr::write_csv(full_ir_df, "data/nflfastR-injuries.csv.gz")
+qs::qsave(
+  full_ir_df,
+  "data/nflfastR-injuries.qs",
+  preset = "custom",
+  algorithm = "zstd_stream",
+  compress_level = 22,
+  shuffle_control = 15
+)
+
+list.files("data/seasons", pattern = "injuries", full.names = TRUE) |>
+  nflversedata::nflverse_upload("injuries")
+
+list.files("data", pattern = "injuries", full.names = TRUE) |>
+  nflversedata::nflverse_upload("injuries")
+
+cli::cli_alert_success("Finished scraping injuries!")

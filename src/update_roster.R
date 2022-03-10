@@ -122,6 +122,10 @@ comb <- purrr::map_dfr(1999:latest_season, ~ readRDS(glue::glue("data/seasons/ro
   dplyr::left_join(readRDS("src/pfr_gsis_map.rds"), by = "gsis_id", suffix = c("", "_joined")) |>
   dplyr::mutate(pfr_id = dplyr::if_else(is.na(pfr_id), pfr_id_joined, pfr_id)) |>
   dplyr::select(-pfr_id_joined)
+
+attr(comb, "nflverse_timestamp") <- Sys.time()
+attr(comb, "nflverse_type") <- "rosters"
+
 saveRDS(comb, "data/nflfastR-roster.rds")
 readr::write_csv(comb, "data/nflfastR-roster.csv.gz")
 
