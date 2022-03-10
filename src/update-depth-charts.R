@@ -101,6 +101,9 @@ if (nrow(dc_df) > 0){
   full_dc_df <- list.files("data/seasons", pattern = "depth_charts_[0-9]+\\.rds", full.names = TRUE) |>
     purrr::map_dfr(readRDS)
 
+  attr(full_dc_df,"nflverse_timestamp") <- Sys.time()
+  attr(full_dc_df,"nflverse_type") <- "injury reports"
+
   saveRDS(full_dc_df, "data/nflfastR-depth_charts.rds")
   readr::write_csv(full_dc_df, "data/nflfastR-depth_charts.csv.gz")
   qs::qsave(
