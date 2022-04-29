@@ -13,7 +13,7 @@ name: Update-Depth-Charts
 jobs:
   Update-Depth-Charts:
     name: Update-Depth-Charts
-    runs-on: ubuntu-latest
+    runs-on: MacOS-latest
     env:
       GITHUB_PAT: ${{ secrets.GITHUB_TOKEN }}
 
