@@ -13,7 +13,7 @@ name: update-injuries
 jobs:
   update-injuries:
     name: update-injuries
-    runs-on: ubuntu-latest
+    runs-on: MacOS-latest
     env:
       GITHUB_PAT: ${{ secrets.GITHUB_TOKEN }}
 
