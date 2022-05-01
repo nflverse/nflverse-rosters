@@ -1,6 +1,6 @@
 Package: nflfastR.roster
 Title: Populates Roster Data
-Version: 0.0.0.9000
+Version: 0.0.1
 Authors@R: 
     c(person(given = "Sebastian",
              family = "Carl",
@@ -28,7 +28,7 @@ Imports:
     readr (>= 2.0.0),
     stringr (>= 1.4.0),
     tidyr,
-    XML (>= 3.99.0),
+    XML,
     xml2
 Remotes:
     nflverse/nflreadr
