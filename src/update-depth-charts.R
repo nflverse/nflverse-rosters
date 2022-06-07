@@ -94,23 +94,30 @@ if (nrow(dc_df) > 0){
     dplyr::group_split(season)
 
   purrr::walk(dc_split, function(x) {
-    saveRDS(x, glue::glue("data/seasons/depth_charts_{unique(x$season)}.rds"))
-    readr::write_csv(x, glue::glue("data/seasons/depth_charts_{unique(x$season)}.csv.gz"))
+
+    nflversedata::nflverse_save(
+      data_frame = x,
+      file_name = paste0("depth_charts_",unique(x$season)),
+      nflverse_type = "team-reported depth charts",
+      release_tag = "depth_charts")
+
+    # saveRDS(x, glue::glue("data/seasons/depth_charts_{unique(x$season)}.rds"))
+    # readr::write_csv(x, glue::glue("data/seasons/depth_charts_{unique(x$season)}.csv.gz"))
   })
 
   full_dc_df <- list.files("data/seasons", pattern = "depth_charts_[0-9]+\\.rds", full.names = TRUE) |>
     purrr::map_dfr(readRDS)
 
-  saveRDS(full_dc_df, "data/nflfastR-depth_charts.rds")
-  readr::write_csv(full_dc_df, "data/nflfastR-depth_charts.csv.gz")
-  qs::qsave(
-    full_dc_df,
-    "data/nflfastR-depth_charts.qs",
-    preset = "custom",
-    algorithm = "zstd_stream",
-    compress_level = 22,
-    shuffle_control = 15
-  )
+  # saveRDS(full_dc_df, "data/nflfastR-depth_charts.rds")
+  # readr::write_csv(full_dc_df, "data/nflfastR-depth_charts.csv.gz")
+  # qs::qsave(
+  #   full_dc_df,
+  #   "data/nflfastR-depth_charts.qs",
+  #   preset = "custom",
+  #   algorithm = "zstd_stream",
+  #   compress_level = 22,
+  #   shuffle_control = 15
+  # )
 
   cli::cli_alert_success("Finished scraping depth charts!")
 } else {
