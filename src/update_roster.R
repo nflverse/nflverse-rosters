@@ -114,7 +114,11 @@ build_rosters <- function(season = nflreadr::most_recent_season(roster = TRUE)){
     dplyr::arrange(team, position)
 
   cli::cli_alert_info("Save stuff newest roster...")
-  nflversedata::nflverse_save(data_frame = roster,file_name =  glue::glue("roster_{season}"), nflverse_type = "roster data",release_tag = "roster")
+  nflversedata::nflverse_save(
+    data_frame = roster,
+    file_name =  glue::glue("roster_{season}"),
+    nflverse_type = "roster data",
+    release_tag = "rosters")
   # saveRDS(roster, glue::glue("data/seasons/roster_{unique(roster$season)}.rds"))
   # readr::write_csv(roster, glue::glue("data/seasons/roster_{unique(roster$season)}.csv"))
 
