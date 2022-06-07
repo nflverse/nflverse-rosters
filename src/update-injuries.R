@@ -102,23 +102,30 @@ if(nrow(weeks) > 0){
     dplyr::group_split(season)
 
   purrr::walk(ir_split, function(x) {
-    saveRDS(x, glue::glue("data/seasons/injuries_{unique(x$season)}.rds"))
-    readr::write_csv(x, glue::glue("data/seasons/injuries_{unique(x$season)}.csv.gz"))
+
+    nflversedata::nflverse_save(
+      data_frame = x,
+      file_name = paste0("injuries_",unique(x$season)),
+      nflverse_type = "injury & practice reports",
+      release_tag = "injuries")
+
+    # saveRDS(x, glue::glue("data/seasons/injuries_{unique(x$season)}.rds"))
+    # readr::write_csv(x, glue::glue("data/seasons/injuries_{unique(x$season)}.csv.gz"))
   })
 
-  full_ir_df <- list.files("data/seasons", pattern = "injuries_[0-9]+\\.rds", full.names = TRUE) |>
-    purrr::map_dfr(readRDS)
-
-  saveRDS(full_ir_df, "data/nflfastR-injuries.rds")
-  readr::write_csv(full_ir_df, "data/nflfastR-injuries.csv.gz")
-  qs::qsave(
-    full_ir_df,
-    "data/nflfastR-injuries.qs",
-    preset = "custom",
-    algorithm = "zstd_stream",
-    compress_level = 22,
-    shuffle_control = 15
-  )
+  # full_ir_df <- list.files("data/seasons", pattern = "injuries_[0-9]+\\.rds", full.names = TRUE) |>
+  #   purrr::map_dfr(readRDS)
+  #
+  # saveRDS(full_ir_df, "data/nflfastR-injuries.rds")
+  # readr::write_csv(full_ir_df, "data/nflfastR-injuries.csv.gz")
+  # qs::qsave(
+  #   full_ir_df,
+  #   "data/nflfastR-injuries.qs",
+  #   preset = "custom",
+  #   algorithm = "zstd_stream",
+  #   compress_level = 22,
+  #   shuffle_control = 15
+  # )
   cli::cli_alert_success("Finished scraping injuries!")
 } else {
   cli::cli_alert_warning("Nothing to load. It's probably offseason.")
