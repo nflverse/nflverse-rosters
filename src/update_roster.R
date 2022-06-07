@@ -144,6 +144,7 @@ build_rosters <- function(season = nflreadr::most_recent_season(roster = TRUE)){
   rm(list = ls())
   cli::cli_alert_info("DONE!")
 }
+build_rosters()
 # update older seasons
 # we run this manually if necessary
 # purrr::walk(1999:(latest_season-1), function(i, comb){
