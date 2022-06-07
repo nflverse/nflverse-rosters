@@ -15,7 +15,7 @@ jobs:
     name: Update-Rosters
     runs-on: macOS-latest
     env:
-      GITHUB_PAT: ${{ secrets.GITHUB_TOKEN }}
+      GITHUB_PAT: ${{ secrets.NFLVERSE_GH_TOKEN }}
 
     steps:
       - uses: actions/checkout@v2
@@ -26,7 +26,9 @@ jobs:
       
       - uses: r-lib/actions/setup-r-dependencies@v2
         with:
-          extra-packages: nflverse/nflreadr
+          extra-packages: | 
+            nflverse/nflreadr
+            nflverse/nflverse-data
 
       - name: Update rosters
         run: Rscript -e 'source("src/update_roster.R")'
