@@ -15,7 +15,7 @@ jobs:
     name: update-injuries
     runs-on: MacOS-latest
     env:
-      GITHUB_PAT: ${{ secrets.GITHUB_TOKEN }}
+      GITHUB_PAT: ${{ secrets.NFLVERSE_GH_TOKEN }}
 
     steps:
       - uses: actions/checkout@v2
@@ -26,16 +26,9 @@ jobs:
 
       - uses: r-lib/actions/setup-r-dependencies@v2
         with:
-          extra-packages: nflverse/nflreadr
+          extra-packages: | 
+            nflverse/nflreadr
+            nflverse/nflverse-data
 
       - name: Update injuries
         run: Rscript -e 'source("src/update-injuries.R")'
-
-      - name: Commit and push injury data
-        run: |
-          git config --local user.email "actions@github.com"
-          git config --local user.name "GitHub Actions"
-          git pull
-          git add data
-          git commit -m "Automated injury report updates `date`" || echo "No changes to commit"
-          git push || echo "No changes to commit"
