@@ -1,60 +1,75 @@
-most_rec_season <- stringi::stri_extract_all_regex(dir("data/seasons"), "officials_[0-9]{4}") |>
-  unlist() |>
-  na.omit() |>
-  max() |>
-  (\(x)gsub("officials_", "", x))()
+pkgload::load_all()
 
-most_rec_season <- ifelse(is.na(most_rec_season), 2015, most_rec_season)
+scrape_officials <-
+  function() {
+    ngs_schedule_iter <-
+      expand.grid(
+        season = 2015:(nflreadr:::most_recent_season() + 1),
+        seasonType = c("REG", "POST")
+      )
 
-cli::cli_alert_info("Fetching officials...")
+    ngs_schedule <-
+      purrr::map2_dfr(
+        ngs_schedule_iter$season,
+        as.character(ngs_schedule_iter$seasonType),
+        ngsscrapR::scrape_schedule
+      )
+    completed_games <-
+      piggyback::pb_download_url(file = "officials.csv",
+                                 repo = "nflverse/nflverse-data",
+                                 tag = "officials") |>
+      read.csv()
 
-if(most_rec_season > 2015) {
-  scraped_game_ids <- readRDS(glue::glue("data/seasons/officials_{most_rec_season}.RDS")) |>
-    dplyr::pull(old_game_id)
-} else {
-  scraped_game_ids <- c()
-}
+    game_ids <- ngs_schedule |>
+      dplyr::filter(!(game_key %in% completed_games$game_key)) |>
+      dplyr::select(game_key)
 
-game_ids_to_update <- nflreadr::load_schedules(most_rec_season:nflreadr:::most_recent_season()) |>
-  dplyr::pull(old_game_id) |>
-  (\(x) x[which(!(x %in% scraped_game_ids))])()
-
-if(length(game_ids_to_update)){
-  cli::cli_alert_info("Scraping officials...")
-
-  game_ids <- nflreadr::load_schedules(most_rec_season:nflreadr:::most_recent_season()) |>
-    dplyr::filter(old_game_id %in% game_ids_to_update) |>
-    dplyr::select(season, game_type, week, game_id, old_game_id)
-
-  new_officials <- purrr::map_dfr(game_ids$old_game_id, \(x){
-    tmp <- ngsscrapR::scrape_officials(x)
-    tmp$old_game_id <- x
-    tmp$game_id <- game_ids$game_id[which(game_ids$old_game_id == x)]
-    tmp$season_type <- game_ids$game_type[which(game_ids$old_game_id == x)]
-    tmp$season <- game_ids$season[which(game_ids$old_game_id == x)]
-    tmp$week <- game_ids$week[which(game_ids$old_game_id == x)]
-    if("game_key" %in% colnames(tmp)){
-      tmp <- tmp[which(!is.na(tmp$game_key)),]
+    if (!nrow(game_ids)) {
+      cli::cli_alert_info("No new games to scrape!")
+      return(F)
     }
-    return(tmp)
-  })
 
-  if(most_rec_season > 2015) {
-    old_officials <- readRDS(glue::glue("data/seasons/officials_{most_rec_season}.RDS"))
+    cli::cli_alert_info("Scraping officials...")
 
-    officials <- old_officials |>
-      dplyr::filter(!(old_game_id %in% game_ids_to_update)) |>
-      dplyr::bind_rows(new_officials)
-  } else {
-    officials <- new_officials
+    new_officials <- purrr::map_dfr(game_ids$game_key, \(x) {
+      payload <- ngsscrapR::scrape_officials(gameKey = x)
+      if ("game_key" %in% colnames(payload)) {
+        payload <- payload[which(!is.na(payload$game_key)),]
+      }
+      return(payload)
+    })
+
+    old_officials <- nflreadr::rds_from_url(
+      "https://github.com/nflverse/nflverse-data/releases/download/officials/officials.RDS"
+    )
+
+    new_officials <-
+      dplyr::bind_rows(old_officials, new_officials) |>
+      dplyr::arrange(game_id)
+
+    # some officials are missing season/season_type/week, this fills them in though not in an nflreadr friendly way
+    new_officials <- new_officials |>
+      dplyr::select(-c(season, season_type, week)) |>
+      dplyr::inner_join(
+        ngs_schedule |>
+          dplyr::mutate(game_id = as.character(game_id)) |>
+          dplyr::select(game_id, season, season_type = game_type, week),
+        by = c("game_id")
+      ) |>
+      dplyr::arrange(game_id)
+
+    cli::cli_process_start("Uploading officials to nflverse-data")
+
+    nflversedata::nflverse_save(
+      data_frame = new_officials,
+      file_name = "officials",
+      nflverse_type = "officials",
+      release_tag = "officials"
+    )
+
+    cli::cli_process_done()
   }
 
-  purrr::walk(unique(officials$season), function(x, df){
-    officials_season <- df |>
-      dplyr::filter(season == x)
-    saveRDS(officials_season, glue::glue("data/seasons/officials_{x}.rds"))
-    readr::write_csv(officials_season, glue::glue("data/seasons/officials_{x}.csv"))
-  }, officials)
-} else {
-  cli::cli_alert_warning("Nothing to load. It's probably offseason.")
-}
+setwd(here::here())
+
+scrape_officials()
