@@ -68,6 +68,4 @@ scrape_officials <-
     cli::cli_process_done()
   }
 
-setwd(here::here())
-
 scrape_officials()
