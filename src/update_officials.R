@@ -1,5 +1,3 @@
-pkgload::load_all()
-
 scrape_officials <-
   function() {
     ngs_schedule_iter <-
