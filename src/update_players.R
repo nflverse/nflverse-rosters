@@ -38,7 +38,8 @@ build_players <- function() {
 
     players <- dplyr::bind_rows(players,
                                 scraped_players) |>
-      dplyr::arrange(display_name)
+      dplyr::arrange(display_name) |>
+      dplyr::mutate(headshot = gsub("\\{formatInstructions\\}","f_auto,q_auto",headshot))
 
     nflversedata::nflverse_save(
       data_frame = players,
