@@ -496,6 +496,7 @@ build_rosters <-
 
     rm(list = ls())
     cli::cli_alert_info("DONE!")
-
-    return(roster)
   }
+
+build_rosters()
+# manual code looks like ...?
