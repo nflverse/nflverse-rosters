@@ -312,10 +312,7 @@ build_rosters <-
         dplyr::ungroup()
 
       players <-
-        piggyback::pb_download_url(file = "players.rds",
-                                   repo = "nflverse/nflverse-data",
-                                   tag = "players") |>
-        nflreadr::rds_from_url()
+        nflreadr::load_players()
 
       cli::cli_alert_info("Download raw JSON data...")
       raw_json <-
@@ -469,7 +466,7 @@ build_rosters <-
       data_frame = weekly_rosters,
       file_name =  glue::glue("roster_weekly_{season}"),
       nflverse_type = "weekly roster data",
-      release_tag = "weekly rosters")
+      release_tag = "weekly_rosters")
 
     cli::cli_alert_info("Build and save combined roster file...")
     latest_season <- unique(roster$season)
