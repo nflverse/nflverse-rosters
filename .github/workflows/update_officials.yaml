@@ -1,18 +1,14 @@
 on:
   schedule:
     # runs every day at 7:00 AM UTC
-    - cron:  '0 7 * * *'
-  # push:
-    # paths:
-      # - R/update_roster.R
-      #- R/update-injuries.R
+    - cron:  '0 7 * 1,2,9,10,11,12 *'
   workflow_dispatch:
 
-name: update-injuries
+name: update-officials
 
 jobs:
-  update-injuries:
-    name: update-injuries
+  update-officials:
+    name: update-officials
     runs-on: MacOS-latest
     env:
       GITHUB_PAT: ${{ secrets.NFLVERSE_GH_TOKEN }}
@@ -26,9 +22,10 @@ jobs:
 
       - uses: r-lib/actions/setup-r-dependencies@v2
         with:
-          extra-packages: | 
+          extra-packages: |
             nflverse/nflreadr
             nflverse/nflverse-data
+            nflverse/ngsscrapR
 
-      - name: Update injuries
-        run: Rscript -e 'source("src/update-injuries.R")'
+      - name: Update officials
+        run: Rscript -e 'source("src/update_officials.R")'
