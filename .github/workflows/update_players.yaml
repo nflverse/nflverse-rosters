@@ -18,22 +18,13 @@ jobs:
 
       - uses: r-lib/actions/setup-r@v2
         with:
-          use-public-rspm: true   
-      
+          use-public-rspm: true
+
       - uses: r-lib/actions/setup-r-dependencies@v2
         with:
-          extra-packages: | 
+          extra-packages: |
             nflverse/nflreadr
             nflverse/nflverse-data
             nflverse/ngsscrapR
       - name: Update players
         run: Rscript -e 'source("src/update-players.R")'
-
-      - name: Commit and push player data
-        run: |
-          git config --local user.email "actions@github.com"
-          git config --local user.name "GitHub Actions"
-          git pull
-          git add data
-          git commit -m "Automated players updates `date`" || echo "No changes to commit"
-          git push || echo "No changes to commit"
