@@ -228,11 +228,12 @@ build_rosters <-
         dplyr::ungroup()
 
       cli::cli_alert_info("Save weekly rosters...")
-      # nflversedata::nflverse_save(
-      #   data_frame = weekly_rosters,
-      #   file_name =  glue::glue("roster_weekly_{season}"),
-      #   nflverse_type = "weekly roster data",
-      #   release_tag = "weekly_rosters")
+      nflversedata::nflverse_save(
+        data_frame = weekly_rosters,
+        file_name =  glue::glue("roster_weekly_{season}"),
+        nflverse_type = "weekly roster data",
+        release_tag = "weekly_rosters"
+      )
     }
 
     ids <- nflreadr::load_ff_playerids() |>
@@ -250,8 +251,11 @@ build_rosters <-
 
     roster <- roster |>
       dplyr::left_join(ids, by = c("gsis_id"), na_matches = "never") |>
-      dplyr::left_join(nflreadr::load_players() |>
-                         dplyr::select(gsis_id, birth_date, college = college_name),by=c("gsis_id"))
+      dplyr::left_join(
+        nflreadr::load_players() |>
+          dplyr::select(gsis_id, birth_date, college = college_name),
+        by = c("gsis_id")
+      )
 
     roster <- roster |>
       dplyr::mutate(headshot_url = gsub("\\{formatInstructions\\}", "f_auto,q_auto", headshot)) |>
@@ -302,15 +306,14 @@ build_rosters <-
       dplyr::arrange(team, position)
 
     cli::cli_alert_info("Save combined rosters...")
-    # nflversedata::nflverse_save(
-    #   data_frame = roster,
-    #   file_name =  glue::glue("roster_{season}"),
-    #   nflverse_type = "roster data",
-    #   release_tag = "rosters"
-    # )
+    nflversedata::nflverse_save(
+      data_frame = roster,
+      file_name =  glue::glue("roster_{season}"),
+      nflverse_type = "roster data",
+      release_tag = "rosters"
+    )
 
-    return(weekly_rosters)
-    # rm(list = ls())
+    rm(list = ls())
     cli::cli_alert_info("DONE!")
 
   }
@@ -319,4 +322,4 @@ build_rosters <-
 # purrr::walk(1920:2022,build_rosters)
 
 # build most recent roster
-build_rosters(nflreadr:::most_recent_season())
+build_rosters()
