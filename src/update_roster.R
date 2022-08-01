@@ -316,7 +316,7 @@ build_rosters <-
   }
 
 # build ALL rosters
-purrr::walk(1920:2022,build_rosters)
+# purrr::walk(1920:2022,build_rosters)
 
 # build most recent roster
 build_rosters(nflreadr:::most_recent_season())
