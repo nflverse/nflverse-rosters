@@ -83,8 +83,8 @@ build_rosters <-
           weekly_rosters <- scrape_rosters() |>
             dplyr::mutate(years_exp = season - as.integer(entry_year)) |>
             dplyr::rename(position = position_group,
-                          depth_chart_position = position) |>
-            dplyr::select(-c(birth_date))
+                          depth_chart_position = position)
+          weekly_rosters[["birth_date"]] <- NULL # sometimes ngsscrapR::scrape_rosters() returns this, sometimes it doesn't
         })
       }
     else if (season >= 2002) {
