@@ -38,7 +38,7 @@ build_players <- function() {
       "PR"
     )
 
-  player_list <- purrr::map(positions, \(search_term) {
+  player_list <- purrr::map(LETTERS, \(search_term) {
     httr::GET(
       httr::modify_url(
         "https://nextgenstats.nfl.com/api/league/player/search",
