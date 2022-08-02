@@ -1,21 +1,9 @@
-most_rec_season <- stringi::stri_extract_all_regex(dir("data/seasons"), "depth_charts_[0-9]{4}") |>
-  unlist() |>
-  na.omit() |>
-  max() |>
-  (\(x)gsub("depth_charts_", "", x))()
-
-most_rec_season <- ifelse(is.na(most_rec_season), 2001, most_rec_season)
-
-seasons_to_scrape <- c(most_rec_season:nflreadr:::most_recent_season())
-
-cli::cli_alert_info("Scraping teams...")
-
-scrape_teams <- function(year) {
+scrape_teams <- function(season) {
   h <- httr::handle("https://www.nfl.info")
   r <- httr::GET(
     handle = h,
     path = glue::glue(
-      "/nfldataexchange/dataexchange.asmx/getClubs?lseason={year}"
+      "/nfldataexchange/dataexchange.asmx/getClubs?lseason={season}"
     ),
     httr::authenticate("media", "media"),
     url = NULL
@@ -27,17 +15,7 @@ scrape_teams <- function(year) {
   return(teams_df)
 }
 
-teams <- purrr::map_dfr(seasons_to_scrape, scrape_teams) |>
-  dplyr::filter(!(ClubCode %in% c("AFC", "NFC", "RIC", "SAN", "CRT", "IRV"))) |>
-  # remove all-star teams
-  dplyr::mutate(Season = as.integer(Season)) |>
-  dplyr::select(club_code = ClubCode, season = Season) |>
-  tidyr::expand_grid(season_type = c("REG", "POST"))
-
-cli::cli_alert_info("Scraping depth charts...")
-
 scrape_dc <- function(season, team, season_type) {
-  cli::cli_process_start("Loading {season} {team}, {season_type}")
   h <- httr::handle("https://www.nfl.info")
   r <- httr::GET(
     handle = h,
@@ -51,76 +29,82 @@ scrape_dc <- function(season, team, season_type) {
     XML::xmlParse() |>
     XML::xmlToDataFrame()
   rm(h)
-  cli::cli_process_done()
   return(dc_df)
 }
 
-dc_df <- purrr::pmap_dfr(list(teams$season, teams$club_code, teams$season_type), scrape_dc)
+build_dc <-
+  function(season = nflreadr:::most_recent_season(roster = T)) {
+    cli::cli_alert_info("Scraping teams...")
 
-if (nrow(dc_df) > 0){
-  dc_df <- dc_df |>
-    dplyr::mutate(
-      ClubCode = dplyr::case_when(
-        ClubCode == "ARZ" ~ "ARI",
-        ClubCode == "BLT" ~ "BAL",
-        ClubCode == "CLV" ~ "CLE",
-        ClubCode == "HST" ~ "HOU",
-        ClubCode == "SL" ~ "STL",
-        T ~ ClubCode
-      ),
-      full_name = paste(FootballName, LastName),
-      dplyr::across(c(Season, Week, DepthTeam, JerseyNumber), as.integer),
-      # Week = dplyr::case_when(SeasonType == 'POST' ~ as.integer(Week) + max(as.integer(Week[SeasonType == 'REG'])),
-      #                         T~as.integer(Week)),
-    ) |>
-    dplyr::select(
-      season = Season,
-      week = Week,
-      team = ClubCode,
-      season_type = SeasonType,
-      position = Position,
-      depth_chart_position = DepthPosition,
-      formation = Formation,
-      depth_team = DepthTeam,
-      jersey_number = JerseyNumber,
-      full_name,
-      first_name = FootballName,
-      last_name = LastName,
-      gsis_id = GsisID
-    )
+    teams <- purrr::map_dfr(season, scrape_teams) |>
+      dplyr::filter(!(ClubCode %in% c("AFC", "NFC", "RIC", "SAN", "CRT", "IRV"))) |>
+      # remove all-star teams
+      dplyr::mutate(Season = as.integer(Season)) |>
+      dplyr::select(club_code = ClubCode, season = Season) |>
+      tidyr::expand_grid(season_type = c("REG", "POST"))
 
-  cli::cli_alert_info("Saving depth charts...")
-  dc_split <- dc_df |>
-    dplyr::group_split(season)
+    cli::cli_alert_info("Scraping depth charts...")
 
-  purrr::walk(dc_split, function(x) {
+    progressr::with_progress({
+      p <- progressr::progressor(steps = nrow(teams))
+      dc_df <-
+        purrr::pmap_dfr(list(teams$season, teams$club_code, teams$season_type),
+                        \(x, y, z) {
+                          df <- scrape_dc(x, y, z)
+                          p()
+                          return(df)
+                        })
+    })
 
-    nflversedata::nflverse_save(
-      data_frame = x,
-      file_name = paste0("depth_charts_",unique(x$season)),
-      nflverse_type = "team-reported depth charts",
-      release_tag = "depth_charts")
+    if (nrow(dc_df)) {
+      dc_df <- dc_df |>
+        dplyr::mutate(
+          ClubCode = dplyr::case_when(
+            ClubCode == "ARZ" ~ "ARI",
+            ClubCode == "BLT" ~ "BAL",
+            ClubCode == "CLV" ~ "CLE",
+            ClubCode == "HST" ~ "HOU",
+            ClubCode == "SL" ~ "STL",
+            T ~ ClubCode
+          ),
+          full_name = paste(FootballName, LastName),
+          Season = as.numeric(Season),
+          Week = as.numeric(Week),
+        ) |>
+        janitor::clean_names() |>
+        dplyr::rename(game_type = season_type) |>
+        dplyr::group_by(season) |>
+        dplyr::mutate(
+          game_type = dplyr::case_when(
+            game_type == "POST" & week == 1 ~ "WC",
+            game_type == "POST" &
+              week == 2 ~ "DIV",
+            game_type == "POST" &
+              week == 3 ~ "CON",
+            game_type == "POST" &
+              week == 4 ~ "SB",
+            T ~ game_type
+          ),
+          week = dplyr::case_when(
+            game_type %in% c("WC", "DIV", "CON", "SB") ~ week + max(week[game_type == "REG"]),
+            T ~ week
+          ),
 
-    # saveRDS(x, glue::glue("data/seasons/depth_charts_{unique(x$season)}.rds"))
-    # readr::write_csv(x, glue::glue("data/seasons/depth_charts_{unique(x$season)}.csv.gz"))
-  })
+        ) |>
+        dplyr::ungroup()
 
-  full_dc_df <- list.files("data/seasons", pattern = "depth_charts_[0-9]+\\.rds", full.names = TRUE) |>
-    purrr::map_dfr(readRDS)
+      cli::cli_alert_info("Save depth charts...")
+      nflversedata::nflverse_save(
+        data_frame = dc_df,
+        file_name =  glue::glue("depth_charts_{season}"),
+        nflverse_type = "depth charts",
+        release_tag = "depth_charts"
+      )
 
-  # saveRDS(full_dc_df, "data/nflfastR-depth_charts.rds")
-  # readr::write_csv(full_dc_df, "data/nflfastR-depth_charts.csv.gz")
-  # qs::qsave(
-  #   full_dc_df,
-  #   "data/nflfastR-depth_charts.qs",
-  #   preset = "custom",
-  #   algorithm = "zstd_stream",
-  #   compress_level = 22,
-  #   shuffle_control = 15
-  # )
+    }
+  }
 
-  cli::cli_alert_success("Finished scraping depth charts!")
-} else {
-  cli::cli_alert_info("No data to save!")
-}
 
+# purrr::walk(2001:2022, build_dc)
+
+build_dc()
