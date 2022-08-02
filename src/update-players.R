@@ -3,41 +3,6 @@ build_players <- function() {
 
   # thank you tan lmao
 
-  positions <-
-    c(
-      "QB",
-      "OT",
-      "DE",
-      "DT",
-      "LB",
-      "T",
-      "WR",
-      "SS",
-      "RB",
-      "CB",
-      "P",
-      "K",
-      "OLB",
-      "G",
-      "TE",
-      "FS",
-      "LS",
-      "DB",
-      "ILB",
-      "C",
-      "MLB",
-      "NT",
-      "FB",
-      "OG",
-      "SAF",
-      "S",
-      "DL",
-      "HB",
-      "OL",
-      "KR",
-      "PR"
-    )
-
   player_list <- purrr::map(LETTERS, \(search_term) {
     httr::GET(
       httr::modify_url(
