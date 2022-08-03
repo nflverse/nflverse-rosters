@@ -83,7 +83,31 @@ build_rosters <-
           weekly_rosters <- scrape_rosters() |>
             dplyr::mutate(years_exp = season - as.integer(entry_year)) |>
             dplyr::rename(position = position_group,
-                          depth_chart_position = position)
+                          depth_chart_position = position,
+                          game_type = season_type) |>
+            dplyr::group_by(game_type) |>
+            dplyr::mutate(week = dplyr::dense_rank(week)) |> # fixing some weirdness where we skip a week
+            dplyr::ungroup() |>
+            dplyr::mutate(
+              game_type = dplyr::case_when(
+                game_type == "POST" & week == 1 ~ "WC",
+                game_type == "POST" &
+                  week == 2 ~ "DIV",
+                game_type == "POST" &
+                  week == 3 ~ "CON",
+                game_type == "POST" &
+                  week == 4 ~ "SB",
+                T ~ game_type
+              ),
+              week = dplyr::case_when(
+                game_type %in% c("WC", "DIV", "CON", "SB") ~ week + max(week[game_type == "REG"]),
+                T ~ week
+              ),
+
+            ) |>
+            dplyr::group_by(game_type, week) |>
+            dplyr::summarise() |>
+            data.frame()
           weekly_rosters[["birth_date"]] <- NULL # sometimes ngsscrapR::scrape_rosters() returns this, sometimes it doesn't
         })
       }
@@ -181,7 +205,7 @@ build_rosters <-
           ) |>
           dplyr::select(
             Season,
-            SeasonType,
+            game_type = SeasonType,
             Week,
             JerseyNumber,
             LastName,
@@ -214,7 +238,27 @@ build_rosters <-
             depth_chart_position,
             years_exp
           ) |>
-          tibble::as_tibble(.name_repair = janitor::make_clean_names)
+          tibble::as_tibble(.name_repair = janitor::make_clean_names) |>
+          dplyr::group_by(game_type) |>
+          dplyr::mutate(week = dplyr::dense_rank(week)) |> # fixing some weirdness where we skip a week
+          dplyr::ungroup() |>
+          dplyr::mutate(
+            game_type = dplyr::case_when(
+              game_type == "POST" & week == 1 ~ "WC",
+              game_type == "POST" &
+                week == 2 ~ "DIV",
+              game_type == "POST" &
+                week == 3 ~ "CON",
+              game_type == "POST" &
+                week == 4 ~ "SB",
+              T ~ game_type
+            ),
+            week = dplyr::case_when(
+              game_type %in% c("WC", "DIV", "CON", "SB") ~ week + max(week[game_type == "REG"]),
+              T ~ week
+            ),
+
+          )
       })
     }
 
@@ -226,7 +270,7 @@ build_rosters <-
         dplyr::group_by(season, team_abbr) |>
         dplyr::filter(group_id == max(group_id)) |>
         dplyr::ungroup()
-
+      browser()
       cli::cli_alert_info("Save weekly rosters...")
       nflversedata::nflverse_save(
         data_frame = weekly_rosters,
