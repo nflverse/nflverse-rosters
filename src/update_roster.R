@@ -270,7 +270,7 @@ build_rosters <-
         dplyr::group_by(season, team_abbr) |>
         dplyr::filter(group_id == max(group_id)) |>
         dplyr::ungroup()
-      browser()
+
       cli::cli_alert_info("Save weekly rosters...")
       nflversedata::nflverse_save(
         data_frame = weekly_rosters,
