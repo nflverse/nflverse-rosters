@@ -104,10 +104,7 @@ build_rosters <-
                 T ~ week
               ),
 
-            ) |>
-            dplyr::group_by(game_type, week) |>
-            dplyr::summarise() |>
-            data.frame()
+            )
           weekly_rosters[["birth_date"]] <- NULL # sometimes ngsscrapR::scrape_rosters() returns this, sometimes it doesn't
         })
       }
