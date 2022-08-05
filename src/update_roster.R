@@ -5,7 +5,7 @@ build_rosters <-
       roster <- nflapi::nflapi_roster(season) |>
         nflapi::nflapi_roster_parse() |>
         dplyr::mutate(
-          season = as.numeric(season),
+          season = as.integer(season),
           player_jersey_number = as.integer(player_jersey_number),
           player_nfl_experience = as.integer(player_nfl_experience),
           player_weight = as.integer(player_weight),
@@ -81,7 +81,7 @@ build_rosters <-
         }
         progressr::with_progress({
           weekly_rosters <- scrape_rosters() |>
-            dplyr::mutate(years_exp = season - as.integer(entry_year)) |>
+            dplyr::mutate(years_exp = as.integer(season) - as.integer(entry_year)) |>
             dplyr::rename(position = position_group,
                           depth_chart_position = position,
                           game_type = season_type) |>
@@ -266,7 +266,9 @@ build_rosters <-
         dplyr::ungroup() |>
         dplyr::group_by(season, team_abbr) |>
         dplyr::filter(group_id == max(group_id)) |>
-        dplyr::ungroup()
+        dplyr::ungroup() |>
+        dplyr::mutate(season = as.integer(season),
+                      week = as.integer(week))
 
       cli::cli_alert_info("Save weekly rosters...")
       nflversedata::nflverse_save(
@@ -342,7 +344,9 @@ build_rosters <-
                                 TRUE ~ team),
         height = stringr::str_remove_all(height, "\\\""),
         height = stringr::str_replace_all(height, "'", "-"),
-        birth_date = lubridate::as_date(birth_date)
+        birth_date = lubridate::as_date(birth_date),
+        season = as.integer(season),
+        week = as.integer(week)
       ) |>
       dplyr::arrange(team, position)
 
