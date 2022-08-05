@@ -362,10 +362,8 @@ build_rosters <-
 
   }
 
-library(furrr)
-plan(multisession)
 # build ALL rosters
-furrr::future_walk(1920:2022,build_rosters)
+# purrr::walk(1920:2022,build_rosters)
 
 # build most recent roster
-# build_rosters()
+build_rosters()
