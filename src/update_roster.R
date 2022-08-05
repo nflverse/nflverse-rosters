@@ -345,8 +345,7 @@ build_rosters <-
         height = stringr::str_remove_all(height, "\\\""),
         height = stringr::str_replace_all(height, "'", "-"),
         birth_date = lubridate::as_date(birth_date),
-        season = as.integer(season),
-        week = as.integer(week)
+        season = as.integer(season)
       ) |>
       dplyr::arrange(team, position)
 
@@ -363,8 +362,10 @@ build_rosters <-
 
   }
 
+library(furrr)
+plan(multisession)
 # build ALL rosters
-# purrr::walk(1920:2022,build_rosters)
+furrr::future_walk(1920:2022,build_rosters)
 
 # build most recent roster
-build_rosters()
+# build_rosters()
