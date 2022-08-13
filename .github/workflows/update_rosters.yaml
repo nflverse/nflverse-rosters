@@ -34,12 +34,3 @@ jobs:
 
       - name: Update rosters
         run: Rscript -e 'source("src/update_roster.R")'
-
-      - name: Commit and push roster data
-        run: |
-          git config --local user.email "actions@github.com"
-          git config --local user.name "GitHub Actions"
-          git pull
-          git add data
-          git commit -m "Automated roster updates `date`" || echo "No changes to commit"
-          git push || echo "No changes to commit"
