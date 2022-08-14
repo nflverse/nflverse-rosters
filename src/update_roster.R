@@ -366,7 +366,7 @@ build_rosters <-
     }
 
     if (season >= 2016) {
-      weekly_rosters <- build_rosters_weekly_dataexchange(season)
+      weekly_rosters <- build_rosters_weekly_ngsapi(season)
       roster <- convert_weekly_to_season_rosters(weekly_rosters)
     }
 
