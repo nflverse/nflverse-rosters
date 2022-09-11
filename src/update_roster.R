@@ -300,7 +300,8 @@ fill_ids <- function(roster) {
     dplyr::left_join(ids, by = c("gsis_id"), na_matches = "never") |>
     dplyr::left_join(
       nflreadr::load_players() |>
-        dplyr::select(gsis_id, college = college_name),
+        dplyr::select(gsis_id, college = college_name) |>
+        dplyr::distinct(),
       by = c("gsis_id")
     )
 
@@ -377,7 +378,9 @@ build_rosters <-
         dplyr::select(-c(status, height, weight, headshot)) |>
         dplyr::left_join(
           shield |>
-            dplyr::select(gsis_id, status = status_short_description, height, weight, headshot, birth_date),
+            dplyr::select(gsis_id, status = status_short_description, height, weight, headshot, birth_date) |>
+            dplyr::arrange(gsis_id, status) |>
+            dplyr::distinct(.keep_all = TRUE),
           by = c("gsis_id"),
           na_matches = "never"
         ) |>
@@ -386,7 +389,9 @@ build_rosters <-
         dplyr::select(-c(status, height, weight, headshot)) |>
         dplyr::left_join(
           shield |>
-            dplyr::select(gsis_id, status = status_short_description, height, weight, headshot, birth_date),
+            dplyr::select(gsis_id, status = status_short_description, height, weight, headshot, birth_date) |>
+            dplyr::arrange(gsis_id, status) |>
+            dplyr::distinct(gsis_id, .keep_all = TRUE),
           by = c("gsis_id"),
           na_matches = "never"
         ) |>
@@ -401,7 +406,8 @@ build_rosters <-
         dplyr::select(-c(height)) |>
         dplyr::left_join(
           shield |>
-            dplyr::select(gsis_id, birth_date, height),
+            dplyr::select(gsis_id, birth_date, height) |>
+            dplyr::distinct(),
           by = c("gsis_id"),
           na_matches = "never"
         ) |>
@@ -410,7 +416,8 @@ build_rosters <-
         dplyr::select(-c(height)) |>
         dplyr::left_join(
           shield |>
-            dplyr::select(gsis_id, birth_date, height),
+            dplyr::select(gsis_id, birth_date, height) |>
+            dplyr::distinct(),
           by = c("gsis_id"),
           na_matches = "never"
         ) |>
