@@ -34,7 +34,7 @@ build_rosters_shieldapi <- function(season) {
       headshot = player_headshot,
       birth_date = player_birth_date
     ) |>
-    dplyr::na_if("") |>
+    dplyr::mutate(dplyr::across(where(is.character), ~dplyr::na_if(.x, ""))) |>
     dplyr::mutate_if(is.character, stringr::str_trim) |>
     dplyr::filter(!(is.na(team_abbr) & is.na(gsis_id)),
                   first_name != "Duplicate")
