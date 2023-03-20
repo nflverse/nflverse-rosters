@@ -71,7 +71,8 @@ build_rosters_weekly_dataexchange <- function(season) {
     dplyr::select(teamId = ClubCode, Season) |>
     dplyr::mutate(join = 1) |>
     dplyr::left_join(data.frame(seasonType = c("REG", "POST"),
-                                join = c(1, 1)), by = c("join")) |>
+                                join = c(1, 1)), by = c("join"),
+                     multiple="all") |>
     dplyr::select(-c(join))
 
   cli::cli_alert_info("Scraping rosters for {season}...")
@@ -168,7 +169,7 @@ build_rosters_weekly_dataexchange <- function(season) {
       ) |>
       tibble::as_tibble(.name_repair = janitor::make_clean_names) |>
       dplyr::group_by(game_type) |>
-      dplyr::mutate(week = dplyr::dense_rank(week)) |> # fixing some weirdness where we skip a week
+      dplyr::mutate(week = dplyr::dense_rank(as.numeric(week))) |> # fixing some weirdness where we skip a week
       dplyr::ungroup() |>
       dplyr::mutate(
         game_type = dplyr::case_when(
@@ -451,4 +452,5 @@ build_rosters <-
 # purrr::walk(1920:2022, build_rosters)
 
 ## build most recent roster
-build_rosters()
+# build_rosters()
+purrr::walk(2002:2015, build_rosters)
