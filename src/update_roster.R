@@ -452,5 +452,4 @@ build_rosters <-
 # purrr::walk(1920:2022, build_rosters)
 
 ## build most recent roster
-# build_rosters()
-purrr::walk(2002:2015, build_rosters)
+build_rosters()
