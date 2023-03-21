@@ -361,6 +361,7 @@ fill_ids <- function(roster) {
                               TRUE ~ team),
       height = stringr::str_remove_all(height, "\\\""),
       height = stringr::str_replace_all(height, "'", "-"),
+      height = as.integer(height),
       season = as.integer(season)
     ) |>
     dplyr::arrange(team, position)
@@ -432,7 +433,7 @@ build_rosters <-
 
     }
 
-    if (length(weekly_rosters) == 0) {
+    if ((season < 2002 && length(roster) == 0) | (season >= 2002 && length(weekly_rosters) == 0)) {
       return(invisible(NULL))
     }
     if (season >= 2002) {
