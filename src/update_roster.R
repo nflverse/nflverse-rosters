@@ -116,6 +116,9 @@ build_rosters_weekly_dataexchange <- function(season) {
 
   progressr::with_progress({
     weekly_rosters <- scrape_rosters() |>
+      dplyr::group_by(GsisID) |>
+      dplyr::mutate(EntryYear = dplyr::first(na.omit(EntryYear))) |> # this is NA for some weeks
+      dplyr::ungroup() |>
       dplyr::mutate(
         depth_chart_position = NA_character_,
         years_exp = season - as.integer(EntryYear),
@@ -241,6 +244,9 @@ build_rosters_weekly_ngsapi <- function(season) {
 
   progressr::with_progress({
     weekly_rosters <- scrape_rosters() |>
+      dplyr::group_by(gsis_id) |>
+      dplyr::mutate(entry_year = dplyr::first(na.omit(entry_year))) |>
+      dplyr::ungroup() |>
       dplyr::mutate(years_exp = as.integer(season) - as.integer(entry_year)) |>
       dplyr::rename(
         position = position_group,
