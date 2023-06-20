@@ -1,43 +1,58 @@
+#' nflverse players
+#'
+#' This function builds the nflverse players table. It uses `gsis_id` as primary
+#' key and combines the following in priority order:
+#'
+#' - manual corrections (?), if available
+#' - NGS API
+#' - Shield API
+#' - PFF
+#' - ffverse player ids
+#' - PFR
+#' - OTC
+#' - ...?
+#' - existing/historical nflverse players
+
 build_players <- function() {
   cli::cli_alert_info("Scraping players...")
 
-  # thank you tan lmao
+  ## existing nflverse players
+  nflverse_players <- nflreadr::load_players()
 
-  player_list <- purrr::map(LETTERS, \(search_term) {
-    httr::GET(
-      httr::modify_url(
-        "https://nextgenstats.nfl.com/api/league/player/search",
-        query = list(term = search_term)
-      ),
-      httr::add_headers(.headers = ngsscrapR::default_headers),
-      httr::set_cookies(.cookies = ngsscrapR::default_cookies)
-    ) |>
-      httr::content(as = "text", encoding = "UTF-8") |>
-      jsonlite::parse_json()
-  })
+  ## NGS rosters
+  ngs_current_rosters <- purrr::map(
+    2016:nflreadr::get_current_season(roster = TRUE),
+    purrr::possibly(~ngsscrapR::scrape_current_roster(teamId = "ALL", season = .x, status = "ALL"), otherwise = tibble::tibble()),
+    .progress = TRUE
+  ) |>
+    data.table::rbindlist(use.names = TRUE, fill = TRUE) |>
+    dplyr::arrange(-season) |>
+    dplyr::group_by(gsis_id, display_name) |>
+    tidyr::fill(-c(season, week, season_type), .direction = "downup") |>
+    dplyr::distinct(gsis_id, display_name, .keep_all = TRUE)
 
-  suppressWarnings({
-    # this throws a warning for filling NA columns like `suffix`
-    players <- player_list |>
-      purrr::map("players") |>
-      unlist(recursive = FALSE) |>
-      data.table::rbindlist(use.names = TRUE, fill = TRUE) |>
-      dplyr::distinct(gsisId, .keep_all = TRUE) |>
-      tibble::as_tibble(.name_repair = janitor::make_clean_names) |>
-      dplyr::arrange(display_name) |>
-      dplyr::mutate(headshot = gsub("\\{formatInstructions\\}", "f_auto,q_auto", headshot))
-  })
+  ## current PFF players
+  pff_players <- nflreadr::rds_from_url("https://github.com/nflverse/nflverse-data/releases/download/players_components/pff_players.rds")
 
-  cli::cli_process_start("Uploading players to nflverse-data")
+  ## ffverse player ids
+  ffverse_player_ids <- nflreadr::load_ff_playerids()
 
-  nflversedata::nflverse_save(
-    data_frame = players,
-    file_name = "players",
-    nflverse_type = "players",
-    release_tag = "players"
-  )
+  ## PFR ?
+  ## Shield API ? (just use rosters?)
+  ## Data Exchange ? (just use rosters?)
+  ## OTC ? (load_contracts (?))
 
-  cli::cli_process_done()
+  # cli::cli_process_start("Uploading players to nflverse-data")
+  #
+  # nflversedata::nflverse_save(
+  #   data_frame = players,
+  #   file_name = "players",
+  #   nflverse_type = "players",
+  #   release_tag = "players"
+  # )
+  #
+  # cli::cli_process_done()
+
 }
 
 build_players()
