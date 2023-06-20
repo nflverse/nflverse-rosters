@@ -199,18 +199,24 @@ build_rosters_weekly_dataexchange <- function(season) {
 build_rosters_weekly_ngsapi <- function(season) {
   cli::cli_alert_info("Using NGS API to obtain roster information!")
   cli::cli_alert_info("Scraping team and weeks for {season}...")
-  teams <- ngsscrapR::scrape_teams(season)
-  if (length(teams) == 0) {
-    cli::cli_alert_warning("No rosters found for {season}! It is possible the league year has not flipped over yet.")
-    return(NULL)
+
+  teams <- try(ngsscrapR::scrape_teams(season) |> dplyr::filter(!is.na(division_id)))
+
+  if(inherits(teams, "try-error")) {
+    cli::cli_alert_warning("Could not pull teams from NGS for {season}. Trying previous season.")
+    teams_prev <- try(ngsscrapR::scrape_teams(season - 1) |> dplyr::filter(!is.na(division_id)))
+    if(inherits(teams_prev, "try-error")) {
+      cli::cli_abort("Could not pull teams from NGS for either {season} or {season-1}. Aborting.")
+    }
+    teams <- teams_prev
   }
-  teams <- teams |>
-    dplyr::filter(!is.na(division_id))
+
   weeks <-
     purrr::map_dfr(c("REG", "POST"),
                    ~ ngsscrapR::scrape_schedule(season, .x)) |>
     dplyr::group_by(week, game_type) |>
     dplyr::summarise(.groups = "drop")
+
   team_week_pair <- teams |>
     dplyr::select(team_id) |>
     dplyr::mutate(join = 1) |>
@@ -379,6 +385,7 @@ fill_ids <- function(roster) {
 
 build_rosters <-
   function(season = nflreadr:::most_recent_season(roster = TRUE)) {
+    browser()
     if (season < 2002) {
       roster <- build_rosters_shieldapi(season) |>
         fill_ids()
