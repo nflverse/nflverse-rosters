@@ -1,4 +1,98 @@
-# pre2002
+build_rosters <-  function(season = nflreadr:::most_recent_season(roster = TRUE)) {
+  weekly_rosters <- tibble::tibble()
+  roster <- tibble::tibble()
+
+  shield <- build_rosters_shieldapi(season) |> fill_ids()
+
+  if(season < 2002) roster <- shield
+
+  if (season >= 2002 && season < 2016) {
+    weekly_rosters <- build_rosters_weekly_dataexchange(season)
+    roster <- convert_weekly_to_season_rosters(weekly_rosters)
+    weekly_rosters <- weekly_rosters |>
+      dplyr::select(-c(status, height, weight, headshot)) |>
+      dplyr::left_join(
+        shield |>
+          dplyr::select(gsis_id, status = status_short_description, height, weight, headshot, birth_date) |>
+          dplyr::arrange(gsis_id, status) |>
+          dplyr::distinct(.keep_all = TRUE),
+        by = c("gsis_id"),
+        na_matches = "never"
+      ) |>
+      fill_ids()
+
+    roster <- roster |>
+      dplyr::select(-c(status, height, weight, headshot)) |>
+      dplyr::left_join(
+        shield |>
+          dplyr::select(gsis_id, status = status_short_description, height, weight, headshot, birth_date) |>
+          dplyr::arrange(gsis_id, status) |>
+          dplyr::distinct(gsis_id, .keep_all = TRUE),
+        by = c("gsis_id"),
+        na_matches = "never"
+      ) |>
+      fill_ids()
+  }
+
+  if (season >= 2016) {
+    weekly_rosters <- build_rosters_weekly_ngsapi(season)
+    if (nrow(weekly_rosters) > 0) {
+      roster <- convert_weekly_to_season_rosters(weekly_rosters)
+      shield <- build_rosters_shieldapi(season)
+      weekly_rosters <- weekly_rosters |>
+        dplyr::select(-c(height)) |>
+        dplyr::left_join(
+          shield |>
+            dplyr::select(gsis_id, birth_date, height) |>
+            dplyr::distinct(),
+          by = c("gsis_id"),
+          na_matches = "never"
+        ) |>
+        fill_ids()
+
+      roster <- roster |>
+        dplyr::select(-c(height)) |>
+        dplyr::left_join(
+          shield |>
+            dplyr::select(gsis_id, birth_date, height) |>
+            dplyr::distinct(),
+          by = c("gsis_id"),
+          na_matches = "never"
+        ) |>
+        fill_ids()
+    }
+  }
+
+  if (season >= 2016 && nrow(weekly_rosters) == 0) {
+    roster <- shield
+  }
+
+  if ((season < 2002 && length(roster) == 0) | (season >= 2002 && length(weekly_rosters) == 0)) {
+    return(invisible(NULL))
+  }
+
+  if (season >= 2002) {
+    cli::cli_alert_info("Save weekly rosters...")
+    nflversedata::nflverse_save(
+      data_frame = weekly_rosters,
+      file_name =  glue::glue("roster_weekly_{season}"),
+      nflverse_type = "weekly roster data",
+      release_tag = "weekly_rosters"
+    )
+  }
+
+  cli::cli_alert_info("Save season rosters...")
+  nflversedata::nflverse_save(
+    data_frame = roster,
+    file_name =  glue::glue("roster_{season}"),
+    nflverse_type = "roster data",
+    release_tag = "rosters"
+  )
+
+  cli::cli_alert_info("DONE!")
+  return(invisible(NULL))
+}
+
 build_rosters_shieldapi <- function(season) {
   cli::cli_alert_info("Using Shield API to build rosters!")
   roster <- nflapi::nflapi_roster(season) |>
@@ -250,7 +344,16 @@ build_rosters_weekly_ngsapi <- function(season) {
   }
 
   progressr::with_progress({
-    weekly_rosters <- scrape_rosters() |>
+    weekly_rosters <- scrape_rosters()
+
+    if(nrow(weekly_rosters) == 0) {
+      # if season roster is missing, patch with current roster and leave weeks null
+      season_rosters <- ngsscrapR::scrape_current_roster(teamId = "ALL", season = season)
+      weekly_rosters <- weekly_rosters |>
+        dplyr::bind_rows(season_rosters)
+    }
+
+    weekly_rosters <- weekly_rosters |>
       dplyr::group_by(gsis_id) |>
       dplyr::mutate(entry_year = dplyr::first(na.omit(entry_year)),
                     rookie_year = dplyr::first(na.omit(rookie_year))) |>
@@ -285,7 +388,6 @@ build_rosters_weekly_ngsapi <- function(season) {
   })
 
   return(weekly_rosters)
-
 }
 
 convert_weekly_to_season_rosters <- function(weekly_rosters) {
@@ -382,96 +484,6 @@ fill_ids <- function(roster) {
 
   return(roster)
 }
-
-build_rosters <-
-  function(season = nflreadr:::most_recent_season(roster = TRUE)) {
-    browser()
-    if (season < 2002) {
-      roster <- build_rosters_shieldapi(season) |>
-        fill_ids()
-    }
-
-    if (season < 2016 & season >= 2002) {
-      weekly_rosters <- build_rosters_weekly_dataexchange(season)
-      roster <- convert_weekly_to_season_rosters(weekly_rosters)
-      shield <- build_rosters_shieldapi(season)
-      weekly_rosters <- weekly_rosters |>
-        dplyr::select(-c(status, height, weight, headshot)) |>
-        dplyr::left_join(
-          shield |>
-            dplyr::select(gsis_id, status = status_short_description, height, weight, headshot, birth_date) |>
-            dplyr::arrange(gsis_id, status) |>
-            dplyr::distinct(.keep_all = TRUE),
-          by = c("gsis_id"),
-          na_matches = "never"
-        ) |>
-        fill_ids()
-      roster <- roster |>
-        dplyr::select(-c(status, height, weight, headshot)) |>
-        dplyr::left_join(
-          shield |>
-            dplyr::select(gsis_id, status = status_short_description, height, weight, headshot, birth_date) |>
-            dplyr::arrange(gsis_id, status) |>
-            dplyr::distinct(gsis_id, .keep_all = TRUE),
-          by = c("gsis_id"),
-          na_matches = "never"
-        ) |>
-        fill_ids()
-    }
-
-    if (season >= 2016) {
-      weekly_rosters <- build_rosters_weekly_ngsapi(season)
-      if (length(weekly_rosters) > 0) {
-        roster <- convert_weekly_to_season_rosters(weekly_rosters)
-        shield <- build_rosters_shieldapi(season)
-        weekly_rosters <- weekly_rosters |>
-          dplyr::select(-c(height)) |>
-          dplyr::left_join(
-            shield |>
-              dplyr::select(gsis_id, birth_date, height) |>
-              dplyr::distinct(),
-            by = c("gsis_id"),
-            na_matches = "never"
-          ) |>
-          fill_ids()
-        roster <- roster |>
-          dplyr::select(-c(height)) |>
-          dplyr::left_join(
-            shield |>
-              dplyr::select(gsis_id, birth_date, height) |>
-              dplyr::distinct(),
-            by = c("gsis_id"),
-            na_matches = "never"
-          ) |>
-          fill_ids()
-      }
-
-    }
-
-    if ((season < 2002 && length(roster) == 0) | (season >= 2002 && length(weekly_rosters) == 0)) {
-      return(invisible(NULL))
-    }
-    if (season >= 2002) {
-      cli::cli_alert_info("Save weekly rosters...")
-      nflversedata::nflverse_save(
-        data_frame = weekly_rosters,
-        file_name =  glue::glue("roster_weekly_{season}"),
-        nflverse_type = "weekly roster data",
-        release_tag = "weekly_rosters"
-      )
-    }
-
-    cli::cli_alert_info("Save season rosters...")
-    nflversedata::nflverse_save(
-      data_frame = roster,
-      file_name =  glue::glue("roster_{season}"),
-      nflverse_type = "roster data",
-      release_tag = "rosters"
-    )
-
-    cli::cli_alert_info("DONE!")
-    return(invisible(NULL))
-  }
 
 ## build ALL rosters
 # purrr::walk(1920:2022, build_rosters)
