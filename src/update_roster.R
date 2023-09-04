@@ -148,11 +148,11 @@ build_rosters_weekly_dataexchange <- function(season) {
     url = NULL
   )
   teams <- httr::content(r) |>
-    xml2::xml_contents() |>
     xml2::as_list() |>
-    unlist() |>
-    stack() |>
-    unstack() |>
+    tibble::as_tibble() |>
+    tidyr::unnest_wider(Clubs) |>
+    tidyr::unnest(tidyselect::everything()) |>
+    tidyr::unnest(tidyselect::everything()) |>
     dplyr::filter(!(ClubCode %in% c('AFC', 'NFC', 'RIC', 'SAN', 'CRT', 'IRV')))
 
   weeks <-
@@ -192,12 +192,11 @@ build_rosters_weekly_dataexchange <- function(season) {
               xml2::xml_contents() |>
               length() != 0) {
             roster <- httr::content(r) |>
-              xml2::xml_contents() |>
               xml2::as_list() |>
-              unlist() |>
-              stack() |>
-              unstack(values ~ ind) |>
-              (\(x) lapply(x, `length<-`, max(lengths(x))))() |>
+              tibble::as_tibble() |>
+              tidyr::unnest_wider(Roster) |>
+              tidyr::unnest(tidyselect::everything()) |>
+              tidyr::unnest(tidyselect::everything()) |>
               data.frame()
           } else {
             roster <- data.frame()
