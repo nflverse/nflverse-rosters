@@ -661,6 +661,9 @@ fill_ids <- function(roster) {
     dplyr::mutate(
       team = dplyr::case_when(team == "LAR" ~ "LA",
                               team == "OAK" & season >= 2020 ~ "LV",
+                              team == "SD" & season >= 2017 ~ "LAC",
+                              team == "JAC" ~ "JAX",
+                              team == "STL" & season >= 2016 ~ "LA",
                               TRUE ~ team),
       height = stringr::str_remove_all(height, "\\\""),
       height = stringr::str_replace_all(height, "'", "-"),
