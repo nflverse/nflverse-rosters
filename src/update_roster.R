@@ -125,7 +125,8 @@ build_rosters <-
               gsub("\\.x", ".y", dplyr::cur_column())
             ), .),
             .names = "{gsub('.x','',.col)}"
-          )
+          ),
+          years_exp = as.integer(season) - as.integer(entry_year)
         ) |>
         dplyr::select(dplyr::any_of(
           c(
@@ -196,7 +197,8 @@ build_rosters <-
                       ~ dplyr::coalesce(get(
                         gsub("\\.x", ".y", dplyr::cur_column())
                       ), .),
-                      .names = "{gsub('.x','',.col)}")
+                      .names = "{gsub('.x','',.col)}"),
+        years_exp = as.integer(season) - as.integer(entry_year)
       ) |>
       dplyr::select(dplyr::any_of(
         c(
@@ -367,12 +369,6 @@ build_rosters_weekly_dataexchange <- function(season) {
 
   progressr::with_progress({
     weekly_rosters <- scrape_rosters() |>
-      dplyr::group_by(GsisID) |>
-      dplyr::mutate(
-        EntryYear = dplyr::first(na.omit(EntryYear)),
-        RookieYear = dplyr::first(na.omit(RookieYear))
-      ) |> # this is NA for some weeks
-      dplyr::ungroup() |>
       dplyr::mutate(
         depth_chart_position = NA_character_,
         years_exp = season - as.integer(EntryYear),
@@ -516,12 +512,6 @@ build_rosters_weekly_ngsapi <- function(season) {
     }
 
     weekly_rosters <- weekly_rosters |>
-      dplyr::group_by(gsis_id) |>
-      dplyr::mutate(
-        entry_year = dplyr::first(na.omit(entry_year)),
-        rookie_year = dplyr::first(na.omit(rookie_year))
-      ) |>
-      dplyr::ungroup() |>
       dplyr::mutate(years_exp = as.integer(season) - as.integer(entry_year)) |>
       dplyr::rename(
         position = position_group,
