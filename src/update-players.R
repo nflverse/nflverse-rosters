@@ -37,13 +37,14 @@ build_players <- function() {
       ) |>
       tidyr::separate(
         height,
+        fill = "left",
         into = c('feet', 'inches'),
         sep = '-',
         convert = TRUE
       ) |>
       dplyr::mutate(
-        height = dplyr::case_when(!is.na(feet) & is.na(inches) ~ feet,
-                                  T ~ feet * 12 + inches),
+        feet = dplyr::coalesce(feet, 0),
+        height = feet * 12 + inches,
         height = dplyr::case_when(height == 0 ~ NA_integer_,
                                   T ~ height)
       ) |>
