@@ -116,7 +116,8 @@ build_rosters <-
         ) |>
         dplyr::left_join(
           df_players,
-          by = c("gsis_id")
+          by = c("gsis_id"),
+          na_matches = "never"
         ) |>
         dplyr::mutate(
           dplyr::across(
@@ -190,14 +191,17 @@ build_rosters <-
       ) |>
       dplyr::left_join(
         df_players,
-        by = c("gsis_id")
+        by = c("gsis_id"),
+        na_matches = "never"
       ) |>
       dplyr::mutate(
-        dplyr::across(dplyr::ends_with(".x"),
-                      ~ dplyr::coalesce(get(
-                        gsub("\\.x", ".y", dplyr::cur_column())
-                      ), .),
-                      .names = "{gsub('.x','',.col)}"),
+        dplyr::across(
+          dplyr::ends_with(".x"),
+          ~ dplyr::coalesce(get(
+            gsub("\\.x", ".y", dplyr::cur_column())
+          ), .),
+          .names = "{gsub('.x','',.col)}"
+        ),
         years_exp = as.integer(season) - as.integer(entry_year)
       ) |>
       dplyr::select(dplyr::any_of(
@@ -277,7 +281,7 @@ build_rosters_shieldapi <- function(season) {
       position = player_position_group,
       depth_chart_position = player_position,
       jersey_number = player_jersey_number,
-      status_short_description = player_status,
+      status = player_status,
       display_name = player_display_name,
       first_name = player_first_name,
       last_name = player_last_name,
@@ -577,7 +581,8 @@ fill_ids <- function(roster) {
       nflreadr::load_players() |>
         dplyr::select(gsis_id, college = college_name) |>
         dplyr::distinct(),
-      by = c("gsis_id")
+      by = c("gsis_id"),
+      na_matches = "never"
     )
 
   roster <- roster |>
@@ -589,7 +594,6 @@ fill_ids <- function(roster) {
       depth_chart_position,
       jersey_number,
       status,
-      status_short_description,
       full_name = display_name,
       first_name,
       last_name,
@@ -613,7 +617,6 @@ fill_ids <- function(roster) {
           "ngs_position",
           "week",
           "game_type",
-          "status",
           "status_description_abbr",
           "status_short_description",
           "football_name",
