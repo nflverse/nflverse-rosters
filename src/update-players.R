@@ -16,7 +16,7 @@ build_players <- function() {
     ) |>
       httr::content(as = "text", encoding = "UTF-8") |>
       jsonlite::parse_json()
-  },.progress = T)
+  },.progress = TRUE)
 
   suppressWarnings({
     # this throws a warning for filling NA columns like `suffix`
