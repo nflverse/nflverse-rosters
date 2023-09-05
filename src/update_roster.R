@@ -2,6 +2,31 @@ build_rosters <-
   function(season = nflreadr:::most_recent_season(roster = TRUE)) {
     weekly_rosters <- tibble::tibble()
     roster <- tibble::tibble()
+    df_players <- nflreadr::load_players() |>
+      dplyr::select(
+        gsis_id,
+        full_name = display_name,
+        first_name,
+        last_name,
+        esb_id,
+        birth_date,
+        college = college_name,
+        entry_year,
+        rookie_year,
+        draft_club,
+        gsis_it_id,
+        smart_id,
+        height,
+        weight
+      ) |>
+      dplyr::mutate(
+        birth_date = as.Date(birth_date),
+        dplyr::across(
+          c(gsis_it_id,
+            smart_id),
+          as.character
+        )
+      )
 
     shield <- build_rosters_shieldapi(season) |> fill_ids()
 
@@ -90,31 +115,7 @@ build_rosters <-
           )
         ) |>
         dplyr::left_join(
-          nflreadr::load_players() |>
-            dplyr::select(
-              gsis_id,
-              full_name = display_name,
-              first_name,
-              last_name,
-              esb_id,
-              birth_date,
-              college = college_name,
-              entry_year,
-              rookie_year,
-              draft_club,
-              gsis_it_id,
-              smart_id,
-              height,
-              weight
-            ) |>
-            dplyr::mutate(
-              birth_date = as.Date(birth_date),
-              dplyr::across(
-                c(gsis_it_id,
-                  smart_id),
-                as.character
-              )
-            ),
+          df_players,
           by = c("gsis_id")
         ) |>
         dplyr::mutate(
@@ -187,29 +188,7 @@ build_rosters <-
         )
       ) |>
       dplyr::left_join(
-        nflreadr::load_players() |>
-          dplyr::select(
-            gsis_id,
-            full_name = display_name,
-            first_name,
-            last_name,
-            esb_id,
-            birth_date,
-            college = college_name,
-            entry_year,
-            rookie_year,
-            draft_club,
-            gsis_it_id,
-            smart_id
-          ) |>
-          dplyr::mutate(
-            birth_date = as.Date(birth_date),
-            dplyr::across(
-              c(gsis_it_id,
-                smart_id),
-              as.character
-            )
-          ),
+        df_players,
         by = c("gsis_id")
       ) |>
       dplyr::mutate(
