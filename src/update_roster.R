@@ -114,19 +114,12 @@ build_rosters <-
             as.integer
           )
         ) |>
-        dplyr::left_join(
+        nflreadr:::join_coalesce(
           df_players,
           by = c("gsis_id"),
           na_matches = "never"
         ) |>
         dplyr::mutate(
-          dplyr::across(
-            dplyr::ends_with(".x"),
-            ~ dplyr::coalesce(get(
-              gsub("\\.x", ".y", dplyr::cur_column())
-            ), .),
-            .names = "{gsub('.x','',.col)}"
-          ),
           years_exp = as.integer(season) - as.integer(entry_year)
         ) |>
         dplyr::select(dplyr::any_of(
@@ -189,19 +182,12 @@ build_rosters <-
           as.integer
         )
       ) |>
-      dplyr::left_join(
+      nflreadr:::join_coalesce(
         df_players,
         by = c("gsis_id"),
         na_matches = "never"
       ) |>
       dplyr::mutate(
-        dplyr::across(
-          dplyr::ends_with(".x"),
-          ~ dplyr::coalesce(get(
-            gsub("\\.x", ".y", dplyr::cur_column())
-          ), .),
-          .names = "{gsub('.x','',.col)}"
-        ),
         years_exp = as.integer(season) - as.integer(entry_year)
       ) |>
       dplyr::select(dplyr::any_of(
