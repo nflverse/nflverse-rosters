@@ -33,8 +33,14 @@ build_players <- function() {
           weight == '' ~ NA_integer_,
           weight == 0 ~ NA_integer_,
           T ~ as.integer(weight)
-        )
+        ),
+        # fixing inconsistent birthday formatting
+        birth_date_1 = lubridate::ymd(birth_date),
+        birth_date_2 = lubridate::mdy(birth_date),
+        birth_date = dplyr::coalesce(birth_date_1, birth_date_2),
+        birth_date = as.character(birth_date)
       ) |>
+      dplyr::select(-c(birth_date_1,birth_date_2)) |>
       tidyr::separate(
         height,
         fill = "left",
