@@ -536,10 +536,10 @@ build_rosters_weekly_ngsapi <- function(season) {
 
 convert_weekly_to_season_rosters <- function(weekly_rosters) {
   roster <- weekly_rosters |>
-    dplyr::group_by(season, team_abbr, week, gsis_id) |>
+    dplyr::group_by(season, week, gsis_id) |>
     dplyr::mutate(group_id = dplyr::cur_group_id()) |>
     dplyr::ungroup() |>
-    dplyr::group_by(season, team_abbr, gsis_id) |>
+    dplyr::group_by(season, gsis_id) |>
     dplyr::filter(group_id == max(group_id)) |>
     dplyr::ungroup() |>
     dplyr::mutate(season = as.integer(season),
@@ -572,7 +572,9 @@ fill_ids <- function(roster) {
     )
 
   roster <- roster |>
-    dplyr::mutate(headshot_url = gsub("\\{formatInstructions\\}", "f_auto,q_auto", headshot)) |>
+    dplyr::mutate(headshot_url = gsub("\\{formatInstructions\\}", "f_auto,q_auto", headshot),
+                  position = dplyr::case_when(position == "SPEC" ~ depth_chart_position,
+                                              T ~ position)) |>
     dplyr::select(
       season,
       team = team_abbr,
