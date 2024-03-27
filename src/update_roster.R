@@ -30,8 +30,7 @@ build_rosters <-
 
     shield <- build_rosters_shieldapi(season) |> fill_ids()
 
-    if (season < 2002)
-      roster <- shield
+    if (season < 2002) roster <- shield
 
     if (season >= 2002 && season < 2016) {
       weekly_rosters <- build_rosters_weekly_dataexchange(season)
@@ -62,7 +61,8 @@ build_rosters <-
     }
 
     if (season >= 2016) {
-      weekly_rosters <- build_rosters_weekly_ngsapi(season)
+      weekly_rosters <- purrr::possibly(build_rosters_weekly_ngsapi,
+                                        data.frame())(season)
       if (nrow(weekly_rosters) > 0) {
         roster <- convert_weekly_to_season_rosters(weekly_rosters)
         shield <- build_rosters_shieldapi(season)
@@ -94,8 +94,7 @@ build_rosters <-
       roster <- shield
     }
 
-    if ((season < 2002 &&
-         length(roster) == 0) |
+    if ((season < 2002 && length(roster) == 0) |
         (season >= 2002 && length(weekly_rosters) == 0)) {
       return(invisible(NULL))
     }
