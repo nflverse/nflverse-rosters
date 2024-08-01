@@ -5,7 +5,7 @@ scrape_teams <- function(season) {
     path = glue::glue(
       "/nfldataexchange/dataexchange.asmx/getClubs?lseason={season}"
     ),
-    httr::authenticate("media", "media"),
+    httr::authenticate(Sys.getenv("NFLDX_USERNAME", "media"), Sys.getenv("NFLDX_PASSWORD", "media")),
     url = NULL
   )
   teams_df <- httr::content(r) |>
@@ -22,7 +22,7 @@ scrape_dc <- function(season, team, season_type) {
     path = glue::glue(
       "/nfldataexchange/dataexchange.asmx/getGameDepthChart?lSeason={season}&lSeasonType={season_type}&lWeek=0&lClub={team}"
     ),
-    httr::authenticate("media", "media"),
+    httr::authenticate(Sys.getenv("NFLDX_USERNAME", "media"), Sys.getenv("NFLDX_PASSWORD", "media")),
     url = NULL
   )
   dc_df <- httr::content(r) |>
