@@ -8,7 +8,7 @@ scrape_ir <- function(year, week, game_type) {
       path = glue::glue(
         "/nfldataexchange/dataexchange.asmx/getInjuryData?lseason={year}&lweek={week}&lseasontype={game_type}"
       ),
-      httr::authenticate("media", "media"),
+      httr::authenticate(Sys.getenv("NFLDX_USERNAME", "media"), Sys.getenv("NFLDX_PASSWORD", "media")),
       url = NULL
     ) |>
       httr::content() |>
