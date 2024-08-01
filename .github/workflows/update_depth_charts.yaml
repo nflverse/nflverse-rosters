@@ -16,7 +16,8 @@ jobs:
     runs-on: MacOS-latest
     env:
       GITHUB_PAT: ${{ secrets.NFLVERSE_GH_TOKEN }}
-
+      NFLDX_PASSWORD: ${{ secrets.NFLDX_PASSWORD }}
+      NFLDX_USERNAME: ${{ secrets.NFLDX_USERNAME }}
     steps:
       - uses: actions/checkout@v2
 
