@@ -87,11 +87,11 @@ build_dc <-
                 (week == 5)) ~ "SB",
             game_type == "POST" &
               (week == 4 &
-                 !(season %in% c(2002:2006, 2014))) ~ "SBBYE",
+                 !(season %in% c(2002:2006, 2014))) ~ "SBBYE", # sometimes we get bye week depth charts for the SB
             T ~ game_type
           ),
           week = dplyr::case_when(
-            game_type == "SBBYE" ~ NA_integer_,
+            game_type == "SBBYE" ~ NA_integer_, # the bye week isn't counted in `load_schedules()` so we treat it like it's not an official NFL week
             game_type == "SB" ~ week + max(week[game_type == "REG"]) - dplyr::if_else(season >= 2007 & season != 2014, 2, 0),
             game_type %in% c("WC", "DIV", "CON") ~ week + max(week[game_type == "REG"]) - dplyr::if_else(season >= 2007 & season != 2014, 1, 0),
             T ~ week,
