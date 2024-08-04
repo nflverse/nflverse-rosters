@@ -92,6 +92,7 @@ build_dc <-
           ),
           week = dplyr::case_when(
             game_type == "SBBYE" ~ NA_integer_, # the bye week isn't counted in `load_schedules()` so we treat it like it's not an official NFL week
+            game_type == "SB" & season == 2001 ~ week + max(week[game_type == "REG"]) - 1,
             game_type == "SB" ~ week + max(week[game_type == "REG"]) - dplyr::if_else(season >= 2007 & season != 2014, 2, 0),
             game_type %in% c("WC", "DIV", "CON") ~ week + max(week[game_type == "REG"]) - dplyr::if_else(season >= 2007 & season != 2014, 1, 0),
             T ~ week,
@@ -111,7 +112,6 @@ build_dc <-
     }
     cli::cli_alert_success("Job's done.")
   }
-
 
 # purrr::walk(2001:2023, build_dc)
 
