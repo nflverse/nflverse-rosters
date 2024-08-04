@@ -5,7 +5,10 @@ scrape_teams <- function(season) {
     path = glue::glue(
       "/nfldataexchange/dataexchange.asmx/getClubs?lseason={season}"
     ),
-    httr::authenticate(Sys.getenv("NFLDX_USERNAME", "media"), Sys.getenv("NFLDX_PASSWORD", "media")),
+    httr::authenticate(
+      Sys.getenv("NFLDX_USERNAME", "media"),
+      Sys.getenv("NFLDX_PASSWORD", "media")
+    ),
     url = NULL
   )
   teams_df <- httr::content(r) |>
@@ -22,7 +25,10 @@ scrape_dc <- function(season, team, season_type) {
     path = glue::glue(
       "/nfldataexchange/dataexchange.asmx/getGameDepthChart?lSeason={season}&lSeasonType={season_type}&lWeek=0&lClub={team}"
     ),
-    httr::authenticate(Sys.getenv("NFLDX_USERNAME", "media"), Sys.getenv("NFLDX_PASSWORD", "media")),
+    httr::authenticate(
+      Sys.getenv("NFLDX_USERNAME", "media"),
+      Sys.getenv("NFLDX_PASSWORD", "media")
+    ),
     url = NULL
   )
   dc_df <- httr::content(r) |>
@@ -34,27 +40,20 @@ scrape_dc <- function(season, team, season_type) {
 
 build_dc <-
   function(season = nflreadr:::most_recent_season(roster = T)) {
-    cli::cli_alert_info("Scraping teams...")
+    cli::cli_alert_info("Scraping teams for {season}...")
 
-    teams <- purrr::map_dfr(season, scrape_teams) |>
+    teams <- scrape_teams(season) |>
       dplyr::filter(!(ClubCode %in% c("AFC", "NFC", "RIC", "SAN", "CRT", "IRV"))) |>
       # remove all-star teams
       dplyr::mutate(Season = as.integer(Season)) |>
-      dplyr::select(club_code = ClubCode, season = Season) |>
+      dplyr::select(season = Season, team = ClubCode) |>
       tidyr::expand_grid(season_type = c("REG", "POST"))
 
-    cli::cli_alert_info("Scraping depth charts...")
+    cli::cli_alert_info("Scraping depth charts for {season}...")
 
-    progressr::with_progress({
-      p <- progressr::progressor(steps = nrow(teams))
-      dc_df <-
-        purrr::pmap_dfr(list(teams$season, teams$club_code, teams$season_type),
-                        \(x, y, z) {
-                          df <- scrape_dc(x, y, z)
-                          p()
-                          return(df)
-                        })
-    })
+    dc_df <-
+      purrr::pmap(teams, scrape_dc, .progress = T) |>
+      purrr::list_rbind()
 
     if (nrow(dc_df)) {
       dc_df <- dc_df |>
@@ -82,29 +81,38 @@ build_dc <-
             game_type == "POST" &
               week == 3 ~ "CON",
             game_type == "POST" &
-              week == 4 ~ "SB",
+              ((
+                week == 4 & season %in% c(2002:2006, 2014)
+              ) |
+                (week == 5)) ~ "SB",
+            game_type == "POST" &
+              (week == 4 &
+                 !(season %in% c(2002:2006, 2014))) ~ "SBBYE", # sometimes we get bye week depth charts for the SB
             T ~ game_type
           ),
           week = dplyr::case_when(
-            game_type %in% c("WC", "DIV", "CON", "SB") ~ week + max(week[game_type == "REG"]),
-            T ~ week
-          ),
-
+            game_type == "SBBYE" ~ NA_integer_, # the bye week isn't counted in `load_schedules()` so we treat it like it's not an official NFL week
+            game_type == "SB" ~ week + max(week[game_type == "REG"]) - dplyr::if_else(season >= 2007 & season != 2014, 2, 0),
+            game_type %in% c("WC", "DIV", "CON") ~ week + max(week[game_type == "REG"]) - dplyr::if_else(season >= 2007 & season != 2014, 1, 0),
+            T ~ week,
+          )
         ) |>
         dplyr::ungroup()
 
-      cli::cli_alert_info("Save depth charts...")
+      cli::cli_alert_info("Save depth charts for {season}...")
       nflversedata::nflverse_save(
         data_frame = dc_df,
         file_name =  glue::glue("depth_charts_{season}"),
         nflverse_type = "depth charts",
         release_tag = "depth_charts"
       )
-
+    } else {
+      cli::cli_alert_warning("No depth charts found for {season}!")
     }
+    cli::cli_alert_success("Job's done.")
   }
 
 
-# purrr::walk(2001:2022, build_dc)
+# purrr::walk(2001:2023, build_dc)
 
 build_dc()
