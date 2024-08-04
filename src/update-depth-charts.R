@@ -100,12 +100,12 @@ build_dc <-
         dplyr::ungroup()
 
       cli::cli_alert_info("Save depth charts for {season}...")
-      # nflversedata::nflverse_save(
-      #   data_frame = dc_df,
-      #   file_name =  glue::glue("depth_charts_{season}"),
-      #   nflverse_type = "depth charts",
-      #   release_tag = "depth_charts"
-      # )
+      nflversedata::nflverse_save(
+        data_frame = dc_df,
+        file_name =  glue::glue("depth_charts_{season}"),
+        nflverse_type = "depth charts",
+        release_tag = "depth_charts"
+      )
     } else {
       cli::cli_alert_warning("No depth charts found for {season}!")
     }
