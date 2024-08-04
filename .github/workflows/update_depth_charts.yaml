@@ -13,13 +13,13 @@ name: Update-Depth-Charts
 jobs:
   Update-Depth-Charts:
     name: Update-Depth-Charts
-    runs-on: MacOS-latest
+    runs-on: ubuntu-22.04
     env:
       GITHUB_PAT: ${{ secrets.NFLVERSE_GH_TOKEN }}
       NFLDX_PASSWORD: ${{ secrets.NFLDX_PASSWORD }}
       NFLDX_USERNAME: ${{ secrets.NFLDX_USERNAME }}
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
 
       - uses: r-lib/actions/setup-r@v2
         with:
