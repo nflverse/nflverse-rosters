@@ -42,7 +42,8 @@ build_dc <-
   function(season = nflreadr:::most_recent_season(roster = T)) {
     cli::cli_alert_info("Scraping teams for {season}...")
 
-    teams <- purrr::map_dfr(season, scrape_teams) |>
+    teams <- purrr::map(season, scrape_teams, .progress = T) |>
+      purrr::list_rbind() |>
       dplyr::filter(!(ClubCode %in% c("AFC", "NFC", "RIC", "SAN", "CRT", "IRV"))) |>
       # remove all-star teams
       dplyr::mutate(Season = as.integer(Season)) |>
