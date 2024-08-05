@@ -72,8 +72,10 @@ build_players <- function() {
         feet = dplyr::coalesce(feet, 0),
         height = feet * 12 + inches,
         height = dplyr::case_when(height == 0 ~ NA_integer_, T ~ height),
+        weight = dplyr::case_when(weight == 0 ~ NA_integer_, T ~ weight),
         height = dplyr::coalesce(height, height_2),
-        weight = dplyr::coalesce(weight, weight_2)
+        weight = dplyr::coalesce(weight, weight_2),
+        birth_date = dplyr::case_when(birth_date == "0-03-07" ~ NA_character_, T ~ birth_date)
       ) |>
       dplyr::relocate(height, .before = "weight") |>
       dplyr::select(-c(feet, inches, height_2, weight_2))
