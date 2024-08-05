@@ -78,7 +78,7 @@ build_players <- function() {
         birth_date = dplyr::case_when(birth_date == "0-03-07" ~ NA_character_, T ~ birth_date)
       ) |>
       dplyr::relocate(height, .before = "weight") |>
-      dplyr::select(-c(feet, inches, height_2, weight_2))
+      dplyr::select(-c(feet, inches, height_2, weight_2, season))
   })
 
   cli::cli_process_start("Uploading players to nflverse-data")
