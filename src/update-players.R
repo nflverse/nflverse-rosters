@@ -1,3 +1,8 @@
+Mode <- function(x) {
+  ux <- unique(x)
+  ux[which.max(tabulate(match(x, ux)))]
+}
+
 build_players <- function() {
   cli::cli_alert_info("Scraping players...")
 
@@ -16,7 +21,7 @@ build_players <- function() {
     ) |>
       httr::content(as = "text", encoding = "UTF-8") |>
       jsonlite::parse_json()
-  },.progress = TRUE)
+  }, .progress = TRUE)
 
   suppressWarnings({
     # this throws a warning for filling NA columns like `suffix`
@@ -27,6 +32,12 @@ build_players <- function() {
       dplyr::distinct(gsisId, .keep_all = TRUE) |>
       tibble::as_tibble(.name_repair = janitor::make_clean_names) |>
       dplyr::arrange(display_name) |>
+      dplyr::left_join(
+        nflreadr::load_rosters(T) |>
+          dplyr::group_by(gsis_id) |>
+          dplyr::summarise(birth_date_3 = Mode(na.omit(birth_date))),
+        by = c("gsis_id")
+      ) |>
       dplyr::mutate(
         headshot = gsub("\\{formatInstructions\\}", "f_auto,q_auto", headshot),
         weight = dplyr::case_when(
@@ -37,10 +48,10 @@ build_players <- function() {
         # fixing inconsistent birthday formatting
         birth_date_1 = lubridate::ymd(birth_date),
         birth_date_2 = lubridate::mdy(birth_date),
-        birth_date = dplyr::coalesce(birth_date_1, birth_date_2),
+        birth_date = dplyr::coalesce(birth_date_1, birth_date_2, birth_date_3),
         birth_date = as.character(birth_date)
       ) |>
-      dplyr::select(-c(birth_date_1,birth_date_2)) |>
+      dplyr::select(-c(birth_date_1, birth_date_2, birth_date_3)) |>
       tidyr::separate(
         height,
         fill = "left",
@@ -48,14 +59,24 @@ build_players <- function() {
         sep = '-',
         convert = TRUE
       ) |>
+      dplyr::left_join(
+        nflreadr::load_rosters(T) |>
+          dplyr::group_by(gsis_id) |>
+          dplyr::summarise(
+            height_2 = Mode(na.omit(height)),
+            weight_2 = Mode(na.omit(weight))
+          ),
+        by = c("gsis_id")
+      ) |>
       dplyr::mutate(
         feet = dplyr::coalesce(feet, 0),
         height = feet * 12 + inches,
-        height = dplyr::case_when(height == 0 ~ NA_integer_,
-                                  T ~ height)
+        height = dplyr::case_when(height == 0 ~ NA_integer_, T ~ height),
+        height = dplyr::coalesce(height, height_2),
+        weight = dplyr::coalesce(weight, weight_2)
       ) |>
-      dplyr::relocate(height,.before="weight") |>
-      dplyr::select(-c(feet,inches))
+      dplyr::relocate(height, .before = "weight") |>
+      dplyr::select(-c(feet, inches, height_2, weight_2))
   })
 
   cli::cli_process_start("Uploading players to nflverse-data")
