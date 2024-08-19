@@ -21,7 +21,8 @@ build_rosters <-
       ) |>
       dplyr::mutate(birth_date = as.Date(birth_date), dplyr::across(c(gsis_it_id, smart_id), as.character))
 
-    shield <- build_rosters_shieldapi(season) |> fill_ids()
+    if(season < 2016)
+      shield <- build_rosters_shieldapi(season) |> fill_ids()
 
     if (season < 2002)
       roster <- shield
