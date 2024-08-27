@@ -19,18 +19,13 @@ build_rosters <-
         height,
         weight
       ) |>
-      dplyr::mutate(
-        birth_date = as.Date(birth_date),
-        dplyr::across(
-          c(gsis_it_id,
-            smart_id),
-          as.character
-        )
-      )
+      dplyr::mutate(birth_date = as.Date(birth_date), dplyr::across(c(gsis_it_id, smart_id), as.character))
 
-    shield <- build_rosters_shieldapi(season) |> fill_ids()
+    if(season < 2016)
+      shield <- build_rosters_shieldapi(season) |> fill_ids()
 
-    if (season < 2002) roster <- shield
+    if (season < 2002)
+      roster <- shield
 
     if (season >= 2002 && season < 2016) {
       weekly_rosters <- build_rosters_weekly_dataexchange(season)
@@ -61,8 +56,7 @@ build_rosters <-
     }
 
     if (season >= 2016) {
-      weekly_rosters <- purrr::possibly(build_rosters_weekly_ngsapi,
-                                        data.frame())(season)
+      weekly_rosters <- purrr::possibly(build_rosters_weekly_ngsapi, data.frame())(season)
       if (nrow(weekly_rosters) > 0) {
         roster <- convert_weekly_to_season_rosters(weekly_rosters)
         shield <- build_rosters_shieldapi(season)
@@ -101,26 +95,26 @@ build_rosters <-
 
     if (season >= 2002) {
       weekly_rosters <- weekly_rosters |>
-        dplyr::mutate(
-          dplyr::across(
-            c(gsis_it_id,
-              smart_id),
-            as.character
-          ),
-          dplyr::across(
-            c(entry_year,
-              rookie_year),
-            as.integer
-          )
-        ) |>
-        nflreadr:::join_coalesce(
-          df_players,
-          by = c("gsis_id"),
-          na_matches = "never"
-        ) |>
-        dplyr::mutate(
-          years_exp = as.integer(season) - as.integer(entry_year)
-        ) |>
+        dplyr::mutate(dplyr::across(c(gsis_it_id, smart_id), as.character),
+                      dplyr::across(c(entry_year, rookie_year), as.integer)) |>
+        nflreadr:::join_coalesce(df_players,
+                                 by = c("gsis_id"),
+                                 na_matches = "never")
+      # fix for missing gsis_ids
+      weekly_rosters_missing <- weekly_rosters |>
+        dplyr::filter(is.na(gsis_id))
+      if (nrow(weekly_rosters_missing)) {
+        weekly_rosters_missing <- weekly_rosters_missing |>
+          tibble::as_tibble() |>
+          nflreadr:::join_coalesce(df_players,
+                                   by = c("gsis_it_id"),
+                                   na_matches = "never")
+        weekly_rosters <- weekly_rosters |>
+          dplyr::filter(!is.na(gsis_id)) |>
+          dplyr::bind_rows(weekly_rosters_missing)
+      }
+      weekly_rosters <- weekly_rosters |>
+        dplyr::mutate(years_exp = as.integer(season) - as.integer(entry_year)) |>
         dplyr::select(dplyr::any_of(
           c(
             "season",
@@ -172,23 +166,30 @@ build_rosters <-
 
     roster <- roster |>
       dplyr::mutate(
-        dplyr::across(
-          dplyr::any_of(c("gsis_it_id","smart_id")),
-          as.character
-        ),
-        dplyr::across(
-          dplyr::any_of(c("entry_year","rookie_year")),
-          as.integer
-        )
+        dplyr::across(dplyr::any_of(c(
+          "gsis_it_id", "smart_id"
+        )), as.character),
+        dplyr::across(dplyr::any_of(c(
+          "entry_year", "rookie_year"
+        )), as.integer)
       ) |>
-      nflreadr:::join_coalesce(
-        df_players,
-        by = c("gsis_id"),
-        na_matches = "never"
-      ) |>
-      dplyr::mutate(
-        years_exp = as.integer(season) - as.integer(entry_year)
-      ) |>
+      nflreadr:::join_coalesce(df_players,
+                               by = c("gsis_id"),
+                               na_matches = "never")
+    roster_missing <- roster |>
+      dplyr::filter(is.na(gsis_id))
+    if (nrow(roster_missing)) {
+      roster_missing <- roster_missing |>
+        tibble::as_tibble() |>
+        nflreadr:::join_coalesce(df_players,
+                                 by = c("gsis_it_id"),
+                                 na_matches = "never")
+      roster <- roster |>
+        dplyr::filter(!is.na(gsis_id)) |>
+        dplyr::bind_rows(roster_missing)
+    }
+    roster <- roster |>
+      dplyr::mutate(years_exp = as.integer(season) - as.integer(entry_year)) |>
       dplyr::select(dplyr::any_of(
         c(
           "season",
@@ -279,8 +280,7 @@ build_rosters_shieldapi <- function(season) {
     ) |>
     dplyr::mutate(dplyr::across(where(is.character), ~ dplyr::na_if(.x, ""))) |>
     dplyr::mutate_if(is.character, stringr::str_trim) |>
-    dplyr::filter(!(is.na(team_abbr) & is.na(gsis_id)),
-                  first_name != "Duplicate")
+    dplyr::filter(!(is.na(team_abbr) & is.na(gsis_id)), first_name != "Duplicate")
   return(roster)
 }
 
@@ -293,7 +293,7 @@ build_rosters_weekly_dataexchange <- function(season) {
     path = glue::glue(
       '/nfldataexchange/dataexchange.asmx/getClubs?lseason={season}'
     ),
-    httr::authenticate('media', 'media'),
+    httr::authenticate(Sys.getenv("NFLDX_USERNAME", "media"), Sys.getenv("NFLDX_PASSWORD", "media")),
     url = NULL
   )
   teams <- httr::content(r) |>
@@ -305,16 +305,14 @@ build_rosters_weekly_dataexchange <- function(season) {
     dplyr::filter(!(ClubCode %in% c('AFC', 'NFC', 'RIC', 'SAN', 'CRT', 'IRV')))
 
   weeks <-
-    purrr::map_dfr(c("REG", "POST"),
-                   ~ ngsscrapR::scrape_schedule(season, .x)) |>
+    purrr::map_dfr(c("REG", "POST"), ~ ngsscrapR::scrape_schedule(season, .x)) |>
     dplyr::group_by(week, game_type) |>
     dplyr::summarise(.groups = "drop")
 
   team_gmtype_pair <- teams |>
     dplyr::select(teamId = ClubCode, Season) |>
     dplyr::mutate(join = 1) |>
-    dplyr::left_join(data.frame(seasonType = c("REG", "POST"),
-                                join = c(1, 1)), by = c("join")) |>
+    dplyr::left_join(data.frame(seasonType = c("REG", "POST"), join = c(1, 1)), by = c("join")) |>
     dplyr::select(-c(join))
 
   cli::cli_alert_info("Scraping rosters for {season}...")
@@ -333,7 +331,7 @@ build_rosters_weekly_dataexchange <- function(season) {
             path = glue::glue(
               '/nfldataexchange/dataexchange.asmx/getRoster?lSeason={x}&lSeasonType={y}&lWeek=0&lClub={z}'
             ),
-            httr::authenticate('media', 'media'),
+            httr::authenticate(Sys.getenv("NFLDX_USERNAME", "media"), Sys.getenv("NFLDX_PASSWORD", "media")),
             url = NULL
           )
 
@@ -452,8 +450,7 @@ build_rosters_weekly_ngsapi <- function(season) {
   }
 
   weeks <-
-    purrr::map_dfr(c("REG", "POST"),
-                   ~ ngsscrapR::scrape_schedule(season, .x)) |>
+    purrr::map_dfr(c("REG", "POST"), ~ ngsscrapR::scrape_schedule(season, .x)) |>
     dplyr::group_by(week, game_type) |>
     dplyr::summarise(.groups = "drop")
 
@@ -463,12 +460,10 @@ build_rosters_weekly_ngsapi <- function(season) {
     dplyr::left_join(weeks |>
                        dplyr::mutate(join = 1), by = c("join")) |>
     dplyr::select(-c(join)) |>
-    dplyr::rename(teamId = team_id,
-                  seasonType = game_type) |>
+    dplyr::rename(teamId = team_id, seasonType = game_type) |>
     dplyr::mutate(
       season = !!season,
-      seasonType = dplyr::case_when(seasonType != "REG" ~ "POST",
-                                    T ~ seasonType)
+      seasonType = dplyr::case_when(seasonType != "REG" ~ "POST", T ~ seasonType)
     )
   cli::cli_alert_info("Scraping rosters for {season}...")
   scrape_rosters <- function() {
@@ -541,8 +536,7 @@ convert_weekly_to_season_rosters <- function(weekly_rosters) {
     dplyr::group_by(season, gsis_id) |>
     dplyr::filter(group_id == max(group_id)) |>
     dplyr::ungroup() |>
-    dplyr::mutate(season = as.integer(season),
-                  week = as.integer(week))
+    dplyr::mutate(season = as.integer(season), week = as.integer(week))
   return(roster)
 }
 
@@ -571,9 +565,10 @@ fill_ids <- function(roster) {
     )
 
   roster <- roster |>
-    dplyr::mutate(headshot_url = gsub("\\{formatInstructions\\}", "f_auto,q_auto", headshot),
-                  position = dplyr::case_when(position == "SPEC" ~ depth_chart_position,
-                                              T ~ position)) |>
+    dplyr::mutate(
+      headshot_url = gsub("\\{formatInstructions\\}", "f_auto,q_auto", headshot),
+      position = dplyr::case_when(position == "SPEC" ~ depth_chart_position, T ~ position)
+    ) |>
     dplyr::select(
       season,
       team = team_abbr,
@@ -618,12 +613,14 @@ fill_ids <- function(roster) {
       )
     ) |>
     dplyr::mutate(
-      team = dplyr::case_when(team == "LAR" ~ "LA",
-                              team == "OAK" & season >= 2020 ~ "LV",
-                              team == "SD" & season >= 2017 ~ "LAC",
-                              team == "JAC" ~ "JAX",
-                              team == "STL" & season >= 2016 ~ "LA",
-                              TRUE ~ team),
+      team = dplyr::case_when(
+        team == "LAR" ~ "LA",
+        team == "OAK" & season >= 2020 ~ "LV",
+        team == "SD" & season >= 2017 ~ "LAC",
+        team == "JAC" ~ "JAX",
+        team == "STL" & season >= 2016 ~ "LA",
+        TRUE ~ team
+      ),
       height = stringr::str_remove_all(height, "\\\""),
       height = stringr::str_replace_all(height, "'", "-"),
       height = as.integer(height),
@@ -635,7 +632,7 @@ fill_ids <- function(roster) {
 }
 
 ## build ALL rosters
-# purrr::walk(1920:2022, build_rosters)
+# purrr::walk(1920:2024, build_rosters)
 
 ## build most recent roster
 build_rosters()
