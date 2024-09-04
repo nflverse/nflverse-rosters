@@ -64,22 +64,26 @@ build_rosters <-
           dplyr::select(-c(height)) |>
           dplyr::left_join(
             shield |>
-              dplyr::select(gsis_id, birth_date, height) |>
+              dplyr::select(gsis_id, birth_date, height, headshot_gsis = headshot) |>
               dplyr::distinct(),
             by = c("gsis_id"),
             na_matches = "never"
           ) |>
+          dplyr::mutate(headshot = dplyr::coalesce(headshot, headshot_gsis)) |>
+          dplyr::select(-c(headshot_gsis)) |>
           fill_ids()
 
         roster <- roster |>
           dplyr::select(-c(height)) |>
           dplyr::left_join(
             shield |>
-              dplyr::select(gsis_id, birth_date, height) |>
+              dplyr::select(gsis_id, birth_date, height, headshot_gsis = headshot) |>
               dplyr::distinct(),
             by = c("gsis_id"),
             na_matches = "never"
           ) |>
+          dplyr::mutate(headshot = dplyr::coalesce(headshot, headshot_gsis)) |>
+          dplyr::select(-c(headshot_gsis)) |>
           fill_ids()
       }
     }
