@@ -30,6 +30,7 @@ jobs:
           extra-packages: | 
             nflverse/nflreadr
             nflverse/nflverse-data
+            janitor
 
       - name: Update Depth Charts
         run: Rscript -e 'source("src/update-depth-charts.R")'
