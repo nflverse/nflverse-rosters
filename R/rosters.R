@@ -4,7 +4,7 @@
 #'
 build_rosters <- function(season = nflreadr:::most_recent_season(roster = TRUE)) {
   cli::cli_alert_info("Building rosters for {season}")
-
+  season <- as.numeric(season)
   df_players <- load_nflverse_players()
 
   weekly_rosters <- tibble::tibble()

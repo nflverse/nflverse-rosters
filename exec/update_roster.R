@@ -1,3 +1,4 @@
+cli::cli_alert_info("JOB START")
 pkgload::load_all()
 print(sessioninfo::session_info())
 
@@ -36,3 +37,4 @@ nflversedata::nflverse_save(
 )
 
 cli::cli_alert_success("Saved season rosters to nflverse-data@rosters")
+cli::cli_alert_success("JOB COMPLETE")
