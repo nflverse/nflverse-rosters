@@ -27,4 +27,4 @@ jobs:
             nflverse/nflverse-data
             nflverse/ngsscrapR
       - name: Update players
-        run: Rscript -e 'source("src/update-players.R")'
+        run: Rscript exec/update-players.R

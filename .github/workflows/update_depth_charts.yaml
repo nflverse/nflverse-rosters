@@ -27,10 +27,10 @@ jobs:
 
       - uses: r-lib/actions/setup-r-dependencies@v2
         with:
-          extra-packages: | 
+          extra-packages: |
             nflverse/nflreadr
             nflverse/nflverse-data
             janitor
 
       - name: Update Depth Charts
-        run: Rscript -e 'source("src/update-depth-charts.R")'
+        run: Rscript exec/update-depth-charts.R
