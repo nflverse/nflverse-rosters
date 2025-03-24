@@ -28,9 +28,9 @@ jobs:
 
       - uses: r-lib/actions/setup-r-dependencies@v2
         with:
-          extra-packages: | 
+          extra-packages: |
             nflverse/nflreadr
             nflverse/nflverse-data
 
       - name: Update injuries
-        run: Rscript -e 'source("src/update-injuries.R")'
+        run: Rscript src/update-injuries.R

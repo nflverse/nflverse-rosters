@@ -28,4 +28,4 @@ jobs:
             nflverse/ngsscrapR
 
       - name: Update officials
-        run: Rscript -e 'source("src/update_officials.R")'
+        run: Rscript exec/update_officials.R

@@ -33,4 +33,4 @@ jobs:
             nflverse/ngsscrapR
 
       - name: Update rosters
-        run: Rscript -e 'source("src/update_roster.R")'
+        run: Rscript exec/update_roster.R
