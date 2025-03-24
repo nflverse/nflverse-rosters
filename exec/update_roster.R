@@ -1,5 +1,6 @@
 build_rosters <-
   function(season = nflreadr:::most_recent_season(roster = TRUE)) {
+    browser()
     weekly_rosters <- tibble::tibble()
     roster <- tibble::tibble()
     df_players <- nflreadr::load_players() |>
@@ -21,8 +22,7 @@ build_rosters <-
       ) |>
       dplyr::mutate(birth_date = as.Date(birth_date), dplyr::across(c(gsis_it_id, smart_id), as.character))
 
-    if(season < 2016)
-      shield <- build_rosters_shieldapi(season) |> fill_ids()
+    shield <- build_rosters_shieldapi(season) |> fill_ids()
 
     if (season < 2002)
       roster <- shield
@@ -59,7 +59,6 @@ build_rosters <-
       weekly_rosters <- purrr::possibly(build_rosters_weekly_ngsapi, data.frame())(season)
       if (nrow(weekly_rosters) > 0) {
         roster <- convert_weekly_to_season_rosters(weekly_rosters)
-        shield <- build_rosters_shieldapi(season)
         weekly_rosters <- weekly_rosters |>
           dplyr::select(-c(height)) |>
           dplyr::left_join(
