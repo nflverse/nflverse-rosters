@@ -85,34 +85,39 @@ build_rosters <- function(season = nflreadr:::most_recent_season(roster = TRUE))
   }
 
   if (nrow(weekly_rosters) == 0) {
-    cli::cli_alert_warning("No weekly rosters to save")
+    cli::cli_alert_warning("No weekly rosters to return")
   }
 
   if (nrow(weekly_rosters) > 0) {
-    cli::cli_alert_info("Processing and saving weekly rosters")
+    cli::cli_alert_info("Processing weekly rosters")
     weekly_rosters <- weekly_rosters |>
       dplyr::mutate(
         dplyr::across(c(gsis_it_id, smart_id), as.character),
         dplyr::across(c(entry_year, rookie_year), as.integer)
       ) |>
-      nflreadr:::join_coalesce(df_players,
-                               by = c("gsis_id" = "gsis_id"),
-                               na_matches = "never"
+      nflreadr:::join_coalesce(
+        df_players,
+        by = c("gsis_id" = "gsis_id"),
+        na_matches = "never"
       )
     # fix for missing gsis_ids
     weekly_rosters_missing <- weekly_rosters |>
       dplyr::filter(is.na(gsis_id))
+
     if (nrow(weekly_rosters_missing)) {
       weekly_rosters_missing <- weekly_rosters_missing |>
         tibble::as_tibble() |>
-        nflreadr:::join_coalesce(df_players,
-                                 by = c("gsis_it_id" = "gsis_it_id"),
-                                 na_matches = "never"
+        nflreadr:::join_coalesce(
+          df_players,
+          by = c("gsis_it_id" = "gsis_it_id"),
+          na_matches = "never"
         )
+
       weekly_rosters <- weekly_rosters |>
         dplyr::filter(!is.na(gsis_id)) |>
         dplyr::bind_rows(weekly_rosters_missing)
     }
+
     weekly_rosters <- weekly_rosters |>
       dplyr::mutate(years_exp = as.integer(season) - as.integer(entry_year)) |>
       dplyr::select(dplyr::any_of(
@@ -164,7 +169,7 @@ build_rosters <- function(season = nflreadr:::most_recent_season(roster = TRUE))
     )
   }
 
-  cli::cli_alert_info("Processing and saving season rosters")
+  cli::cli_alert_info("Processing season rosters")
 
   roster <- roster |>
     dplyr::mutate(
@@ -189,54 +194,48 @@ build_rosters <- function(season = nflreadr:::most_recent_season(roster = TRUE))
   }
   roster <- roster |>
     dplyr::mutate(years_exp = as.integer(season) - as.integer(entry_year)) |>
-    dplyr::select(dplyr::any_of(
-      c(
-        "season",
-        "team",
-        "position",
-        "depth_chart_position",
-        "jersey_number",
-        "status",
-        "full_name",
-        "first_name",
-        "last_name",
-        "birth_date",
-        "height",
-        "weight",
-        "college",
-        "gsis_id",
-        "espn_id",
-        "sportradar_id",
-        "yahoo_id",
-        "rotowire_id",
-        "pff_id",
-        "pfr_id",
-        "fantasy_data_id",
-        "sleeper_id",
-        "years_exp",
-        "headshot_url",
-        "ngs_position",
-        "week",
-        "game_type",
-        "status_description_abbr",
-        "football_name",
-        "esb_id",
-        "gsis_it_id",
-        "smart_id",
-        "entry_year",
-        "rookie_year",
-        "draft_club",
-        "draft_number"
+    dplyr::select(
+      dplyr::any_of(
+        c(
+          "season",
+          "team",
+          "position",
+          "depth_chart_position",
+          "jersey_number",
+          "status",
+          "full_name",
+          "first_name",
+          "last_name",
+          "birth_date",
+          "height",
+          "weight",
+          "college",
+          "gsis_id",
+          "espn_id",
+          "sportradar_id",
+          "yahoo_id",
+          "rotowire_id",
+          "pff_id",
+          "pfr_id",
+          "fantasy_data_id",
+          "sleeper_id",
+          "years_exp",
+          "headshot_url",
+          "ngs_position",
+          "week",
+          "game_type",
+          "status_description_abbr",
+          "football_name",
+          "esb_id",
+          "gsis_it_id",
+          "smart_id",
+          "entry_year",
+          "rookie_year",
+          "draft_club",
+          "draft_number"
+        )
       )
-    ))
+    )
 
-  cli::cli_alert_info("Save season rosters...")
-  nflversedata::nflverse_save(
-    data_frame = roster,
-    file_name = glue::glue("roster_{season}"),
-    nflverse_type = "roster data",
-    release_tag = "rosters"
-  )
-  cli::cli_alert_info("DONE!")
-  return(invisible(list(season = roster, weekly = weekly_rosters)))
+  return(list(season = roster, weekly = weekly_rosters))
 }
