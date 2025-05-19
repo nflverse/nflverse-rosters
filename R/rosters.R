@@ -55,7 +55,7 @@ build_rosters <- function(season = nflreadr:::most_recent_season(roster = TRUE))
         dplyr::select(-c(height)) |>
         dplyr::left_join(
           shield |>
-            dplyr::select(gsis_id, birth_date, height, headshot_gsis = headshot) |>
+            dplyr::select(gsis_id, birth_date, height, headshot_gsis = headshot_url) |>
             dplyr::distinct(),
           by = c("gsis_id"),
           na_matches = "never"
@@ -68,7 +68,7 @@ build_rosters <- function(season = nflreadr:::most_recent_season(roster = TRUE))
         dplyr::select(-c(height)) |>
         dplyr::left_join(
           shield |>
-            dplyr::select(gsis_id, birth_date, height, headshot_gsis = headshot) |>
+            dplyr::select(gsis_id, birth_date, height, headshot_gsis = headshot_url) |>
             dplyr::distinct(),
           by = c("gsis_id"),
           na_matches = "never"
