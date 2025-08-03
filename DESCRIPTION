@@ -38,7 +38,9 @@ Remotes:
     nflverse/nflreadr,
     nflapi=nflverse/nflapi,
     nflversedata=nflverse/nflverse-data,
-    ngsscrapR=nflverse/ngsscrapR
+    ngsscrapR=nflverse/ngsscrapR,
+    nflverse.espn=nflverse/nflverse-espn,
+    nflverse.players=nflverse/nflverse-players
 Encoding: UTF-8
 LazyData: true
 Roxygen: list(markdown = TRUE)
