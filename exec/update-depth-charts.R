@@ -2,7 +2,7 @@ build_dc <- function() {
   szn <- nflreadr::most_recent_season(roster = TRUE)
 
   new <- try(nflverse.espn::espn_depth_charts(season = szn), silent = FALSE)
-  if (inherits(new, "try-error")) {
+  if (inherits(new, "try-error") || (nrow(new) == 0)) {
     cli::cli_abort(
       "Failed to query new depth chart data. Won't upload updates."
     )
