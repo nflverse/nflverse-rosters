@@ -22,6 +22,7 @@ build_dc <- function() {
     cli::cli_alert_danger(
       "Failed to download current depth chart data. Won't upload updates."
     )
+    return(invisible(NULL))
   }
 
   append <- dplyr::bind_rows(old, new) |>
