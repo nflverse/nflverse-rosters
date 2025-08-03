@@ -1,12 +1,11 @@
 build_dc <- function() {
   szn <- nflreadr::most_recent_season(roster = TRUE)
 
-  new <- try(nflverse.espn::espn_depth_charts(season = szn), silent = TRUE)
+  new <- try(nflverse.espn::espn_depth_charts(season = szn), silent = FALSE)
   if (inherits(new, "try-error")) {
-    cli::cli_alert_danger(
+    cli::cli_abort(
       "Failed to query new depth chart data. Won't upload updates."
     )
-    return(invisible(NULL))
   }
 
   old <- try(
@@ -16,13 +15,12 @@ build_dc <- function() {
         "depth_charts/depth_charts_{szn}.rds"
       )
     ),
-    silent = TRUE
+    silent = FALSE
   )
   if (inherits(old, "try-error") || (nrow(old) == 0)) {
-    cli::cli_alert_danger(
+    cli::cli_abort(
       "Failed to download current depth chart data. Won't upload updates."
     )
-    return(invisible(NULL))
   }
 
   append <- dplyr::bind_rows(old, new) |>
