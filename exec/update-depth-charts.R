@@ -23,11 +23,26 @@ build_dc <- function() {
     )
   }
 
-  append <- dplyr::bind_rows(old, new) |>
-    dplyr::arrange(dplyr::desc(dt), team, pos_grp_id, pos_rank)
+  # we use the espn_id <-> gsis_id map from nflverse-players to join as many
+  # gsis_ids as we can
+  gsis_map <- try(nflverse.players::players_download("espn"), silent = FALSE)
+  if (inherits(gsis_map, "try-error") || (nrow(gsis_map) == 0)) {
+    cli::cli_abort(
+      "Failed to download gsis id mapping. Won't upload updates."
+    )
+  }
+  gsis_map <- setNames(gsis_map$gsis_id, gsis_map$espn_id)
+
+  prepend <- dplyr::bind_rows(new, old) |>
+    dplyr::arrange(dplyr::desc(dt), team, pos_grp_id, pos_rank) |>
+    # we already do this in nflverse.espn::espn_depth_charts but we need
+    # to apply gsis_id updates to all data.
+    dplyr::mutate(
+      gsis_id = unname(gsis_map[as.character(espn_id)])
+    )
 
   nflversedata::nflverse_save(
-    data_frame = append,
+    data_frame = prepend,
     file_name = glue::glue("depth_charts_{szn}"),
     nflverse_type = "depth charts",
     release_tag = "depth_charts"
