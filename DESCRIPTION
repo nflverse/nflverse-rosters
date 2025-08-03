@@ -1,6 +1,6 @@
 Package: nflfastR.roster
 Title: Populates Roster Data
-Version: 0.0.2
+Version: 0.0.3
 Authors@R: 
     c(person(given = "Sebastian",
              family = "Carl",
@@ -38,7 +38,9 @@ Remotes:
     nflverse/nflreadr,
     nflapi=nflverse/nflapi,
     nflversedata=nflverse/nflverse-data,
-    ngsscrapR=nflverse/ngsscrapR
+    ngsscrapR=nflverse/ngsscrapR,
+    nflverse.espn=nflverse/nflverse-espn,
+    nflverse.players=nflverse/nflverse-players
 Encoding: UTF-8
 LazyData: true
 Roxygen: list(markdown = TRUE)
