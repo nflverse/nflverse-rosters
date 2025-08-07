@@ -1,7 +1,7 @@
 on:
-  schedule:
+  # schedule:
     # runs every day at 7:00 AM UTC
-    - cron:  '0 7 * * *'
+    # - cron:  '0 7 * * *'
   # push:
     # paths:
       # - R/update_roster.R
@@ -33,4 +33,4 @@ jobs:
             nflverse/nflverse-data
 
       - name: Update injuries
-        run: Rscript src/update-injuries.R
+        run: Rscript exec/update-injuries.R
