@@ -33,7 +33,9 @@ Imports:
     nflreadr (>= 1.1.1),
     nflapi,
     ngsscrapR,
-    nflversedata
+    nflversedata,
+    nflverse.espn,
+    nflverse.players
 Remotes:
     nflverse/nflreadr,
     nflapi=nflverse/nflapi,
