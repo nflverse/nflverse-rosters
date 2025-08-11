@@ -37,8 +37,10 @@ build_dc <- function() {
     dplyr::arrange(dplyr::desc(dt), team, pos_grp_id, pos_rank) |>
     # we already do this in nflverse.espn::espn_depth_charts but we need
     # to apply gsis_id updates to all data.
+    # Also true for the pos_name strings
     dplyr::mutate(
-      gsis_id = unname(gsis_map[as.character(espn_id)])
+      gsis_id = unname(gsis_map[as.character(espn_id)]),
+      pos_name = stringr::str_squish(pos_name)
     )
 
   nflversedata::nflverse_save(
