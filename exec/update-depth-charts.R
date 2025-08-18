@@ -25,7 +25,7 @@ build_dc <- function() {
 
   # we use the espn_id <-> gsis_id map from nflverse-players to join as many
   # gsis_ids as we can
-  gsis_map <- try(nflverse.players::players_download("espn"), silent = FALSE)
+  gsis_map <- try(nflverse.players::players_download("full"), silent = FALSE)
   if (inherits(gsis_map, "try-error") || (nrow(gsis_map) == 0)) {
     cli::cli_abort(
       "Failed to download gsis id mapping. Won't upload updates."
