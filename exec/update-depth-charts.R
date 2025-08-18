@@ -41,7 +41,10 @@ build_dc <- function() {
     dplyr::mutate(
       gsis_id = unname(gsis_map[as.character(espn_id)]),
       pos_name = stringr::str_squish(pos_name)
-    )
+    ) |>
+    # clean player names a bit. Too lazy to write it out so I use the helper
+    # from nflverse.espn
+    nflverse.espn:::.espn_replace_na_names()
 
   nflversedata::nflverse_save(
     data_frame = prepend,
