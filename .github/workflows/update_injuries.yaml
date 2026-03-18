@@ -1,11 +1,7 @@
 on:
-  # schedule:
-    # runs every day at 7:00 AM UTC
-    # - cron:  '0 7 * * *'
-  # push:
-    # paths:
-      # - R/update_roster.R
-      #- R/update-injuries.R
+  schedule:
+  # runs every day at 7:00 AM UTC from Sep to Feb
+  - cron:  '0 7 * 1,2,9,10,11,12 *'
   workflow_dispatch:
 
 name: update-injuries
@@ -16,8 +12,6 @@ jobs:
     runs-on: ubuntu-latest
     env:
       GITHUB_PAT: ${{ secrets.NFLVERSE_GH_TOKEN }}
-      NFLDX_PASSWORD: ${{ secrets.NFLDX_PASSWORD }}
-      NFLDX_USERNAME: ${{ secrets.NFLDX_USERNAME }}
 
     steps:
       - uses: actions/checkout@v4
@@ -31,6 +25,7 @@ jobs:
           extra-packages: |
             nflverse/nflreadr
             nflverse/nflverse-data
+            nflverse/nflapi
 
       - name: Update injuries
         run: Rscript exec/update-injuries.R
