@@ -15,7 +15,7 @@ jobs:
     name: Update roster
     runs-on: macOS-latest
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v6
       - uses: r-lib/actions/setup-r@v1
 
       - name: Install packages
