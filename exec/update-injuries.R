@@ -22,4 +22,4 @@ build_injury_data <- function(season) {
 #   purrr::walk(build_injury_data)
 
 # update most recent season
-build_injury_data(nflreadr::most_recent_season())
+build_injury_data(nflreadr::most_recent_season(roster = TRUE))
