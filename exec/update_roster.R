@@ -1,6 +1,6 @@
 cli::cli_alert_info("JOB START")
 pkgload::load_all()
-print(sessioninfo::session_info())
+print(sessionInfo())
 
 season <- Sys.getenv("NFLVERSE_SEASON", unset =  nflreadr::most_recent_season(roster = TRUE))
 
