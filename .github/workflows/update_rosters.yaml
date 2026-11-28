@@ -8,6 +8,7 @@ on:
 
 name: Update-Rosters
 
+# Rosters, injuries and depth charts as independent jobs (fail-fast off).
 # Setup installs this repo's DESCRIPTION dependencies, incl. the private
 # nflapi, ngsscrapR and nflverse-espn, with a read-only app token. The upload
 # token (nflverse-data only) is minted after setup and only set on the release
@@ -16,10 +17,20 @@ permissions:
   contents: read
 
 jobs:
-  update-rosters:
-    name: Update-Rosters
+  update:
+    name: Update ${{ matrix.type }}
     runs-on: ubuntu-latest
     container: ghcr.io/nflverse/r-runner:latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - type: rosters
+            script: exec/update_roster.R
+          - type: injuries
+            script: exec/update-injuries.R
+          - type: depth charts
+            script: exec/update-depth-charts.R
     steps:
       - uses: actions/checkout@v6
 
@@ -43,8 +54,8 @@ jobs:
           repositories: nflverse-data
           contents: write
 
-      - name: Update rosters
-        run: Rscript exec/update_roster.R
+      - name: Release ${{ matrix.type }}
+        run: Rscript ${{ matrix.script }}
         env:
           # used by the gh cli for release uploads
           GH_TOKEN: ${{ steps.upload-token.outputs.token }}
