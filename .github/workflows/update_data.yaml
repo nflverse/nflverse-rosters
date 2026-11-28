@@ -1,0 +1,186 @@
+on:
+  # Started by guga31bb's cron via workflow_dispatch. GitHub's schedule fired
+  # ~10 hours late, so it stays off.
+  # schedule:
+  #   # every day at 7:07 AM UTC
+  #   - cron: '7 7 * * *'
+  workflow_dispatch:
+    inputs:
+      datasets:
+        description: 'Which data to update'
+        required: true
+        default: 'all'
+        type: choice
+        options:
+          - all
+          - rosters
+          - injuries
+          - depth_charts
+      season_rebuild:
+        description: 'Rebuild Season (9999 defaults to latest season). Do multiple seasons comma separated, e.g. 2017,2019,2021. Rosters: 1920-2001 and 2016+, injuries: 2009+, depth charts: current season only'
+        required: false
+        default: '9999'
+        type: string
+      full_rebuild:
+        description: 'Full Rebuild (overwrites above season)'
+        required: true
+        default: false
+        type: boolean
+
+name: Update Rosters, Injuries and Depth Charts
+
+# Never run two updates at the same time. A daily run that fires during a
+# long rebuild waits instead of doubling the upload load on the GitHub API.
+concurrency:
+  group: update-rosters-data
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  update_setup:
+    runs-on: ubuntu-latest
+    name: update_setup
+    outputs:
+      jobs: ${{ steps.jobs.outputs.jobs }}
+      releases: ${{ steps.jobs.outputs.releases }}
+      started_at: ${{ steps.jobs.outputs.started_at }}
+    steps:
+      - id: seasons
+        uses: nflverse/actions/season-matrix@v1
+        with:
+          first-season: 1920
+          roster: true
+          season-rebuild: ${{ inputs.season_rebuild }}
+          full-rebuild: ${{ inputs.full_rebuild }}
+
+      - id: jobs
+        name: Query jobs
+        env:
+          DATASETS: ${{ inputs.datasets || 'all' }}
+          SEASONS: ${{ steps.seasons.outputs.seasons }}
+          CURRENT_SEASON: ${{ steps.seasons.outputs.current-season }}
+        run: |
+          set -euo pipefail
+
+          # used by the upload_timestamps job to find releases this run updated
+          echo "started_at=$(date -u +%Y-%m-%dT%H:%M:%SZ)" >> "$GITHUB_OUTPUT"
+
+          case "$DATASETS" in
+            all)          types='["rosters","injuries","depth_charts"]' ;;
+            rosters|injuries|depth_charts) types="[\"$DATASETS\"]" ;;
+            *) echo "::error::Unknown datasets value '$DATASETS'"; exit 1 ;;
+          esac
+
+          # Seasons each dataset can be built for:
+          # - rosters: 2002-2015 were built from the NFL Data Exchange (gone).
+          #   Rebuilding them would replace them with Shield-only rosters.
+          # - injuries: 2009+
+          # - depth charts: ESPN only serves the current depth charts
+          jobs=$(jq -cn --argjson types "$types" --argjson seasons "$SEASONS" --argjson cur "$CURRENT_SEASON" '
+            [ $types[] as $t | $seasons[] as $s
+              | select(
+                  ($t == "rosters" and ($s < 2002 or $s >= 2016)) or
+                  ($t == "injuries" and $s >= 2009) or
+                  ($t == "depth_charts" and $s == $cur))
+              | {type: $t, season: $s, script: {
+                  rosters: "exec/update_roster.R",
+                  injuries: "exec/update-injuries.R",
+                  depth_charts: "exec/update-depth-charts.R"}[$t]} ]')
+
+          skipped=$(jq -rn --argjson types "$types" --argjson seasons "$SEASONS" --argjson jobs "$jobs" '
+            [ $types[] as $t | $seasons[] as $s
+              | select([$jobs[] | select(.type == $t and .season == $s)] | length == 0)
+              | "\($t) \($s)" ] | join(", ")')
+          if [ -n "$skipped" ]; then
+            echo "::notice title=Skipped::Not available for these seasons: $skipped"
+          fi
+          if [ "$jobs" == "[]" ]; then
+            echo "::error::Nothing to update for datasets '$DATASETS' and seasons $SEASONS"
+            exit 1
+          fi
+
+          # "owner/repo tag" of every release this run writes to
+          releases=$(jq -r '[.[].type] | unique | map({
+              rosters: "nflverse/nflverse-data rosters\nnflverse/nflverse-data weekly_rosters",
+              injuries: "nflverse/nflverse-data injuries",
+              depth_charts: "nflverse/nflverse-data depth_charts"}[.]) | join("\n")' <<< "$jobs")
+
+          echo "Jobs: $jobs"
+          {
+            echo "jobs=$jobs"
+            echo "releases<<RELEASES_EOF"
+            echo "$releases"
+            echo "RELEASES_EOF"
+          } >> "$GITHUB_OUTPUT"
+
+  update:
+    needs: update_setup
+    name: Update ${{ matrix.season }} ${{ matrix.type }}
+    runs-on: ubuntu-latest
+    container: ghcr.io/nflverse/r-runner:latest
+    strategy:
+      fail-fast: false
+      # full rebuilds run ~100 jobs; limit parallel uploads (GitHub's
+      # secondary rate limit) and the org's 20 concurrent jobs
+      max-parallel: 6
+      matrix:
+        include: ${{ fromJson(needs.update_setup.outputs.jobs) }}
+    env:
+      NFLVERSE_UPDATE_SEASON: ${{ matrix.season }}
+      # timestamps are uploaded once per run by the upload_timestamps job
+      NFLVERSE_UPLOAD_TIMESTAMPS: "false"
+    steps:
+      - uses: actions/checkout@v6
+
+      # Setup installs this repo's DESCRIPTION dependencies, incl. the
+      # private nflapi, ngsscrapR and nflverse-espn: read-only token.
+      - id: read-token
+        uses: nflverse/actions/app-token@v1
+        with:
+          client-id: ${{ vars.NFLVERSE_APP_CLIENT_ID }}
+          private-key: ${{ secrets.NFLVERSE_APP_PRIVATE_KEY }}
+          repositories: nflapi, ngsscrapR, nflverse-espn
+
+      - uses: nflverse/actions/setup@v1
+        with:
+          packages: nflverse/nflapi nflverse/ngsscrapR nflverse/nflverse-espn nflverse/nflverse-players nflverse/nflverse-data nflverse/nflreadr
+          github-pat: ${{ steps.read-token.outputs.token }}
+
+      # write access to nflverse-data only. Minted after setup, which
+      # installs unpinned GitHub code.
+      - id: upload-token
+        uses: nflverse/actions/app-token@v1
+        with:
+          client-id: ${{ vars.NFLVERSE_APP_CLIENT_ID }}
+          private-key: ${{ secrets.NFLVERSE_APP_PRIVATE_KEY }}
+          repositories: nflverse-data
+          contents: write
+
+      - name: Release ${{ matrix.season }} ${{ matrix.type }}
+        run: Rscript ${{ matrix.script }}
+        env:
+          # used by the gh cli for release uploads
+          GH_TOKEN: ${{ steps.upload-token.outputs.token }}
+
+  # Upload timestamp.txt and timestamp.json once per release. A release gets a
+  # new timestamp if at least one of its data files was updated in this run.
+  upload_timestamps:
+    needs: [update_setup, update]
+    if: ${{ !cancelled() && needs.update_setup.result == 'success' }}
+    name: Upload release timestamps
+    runs-on: ubuntu-latest
+    steps:
+      - id: upload-token
+        uses: nflverse/actions/app-token@v1
+        with:
+          client-id: ${{ vars.NFLVERSE_APP_CLIENT_ID }}
+          private-key: ${{ secrets.NFLVERSE_APP_PRIVATE_KEY }}
+          repositories: nflverse-data
+          contents: write
+      - uses: nflverse/actions/upload-timestamps@v1
+        with:
+          started-at: ${{ needs.update_setup.outputs.started_at }}
+          releases: ${{ needs.update_setup.outputs.releases }}
+          token: ${{ steps.upload-token.outputs.token }}

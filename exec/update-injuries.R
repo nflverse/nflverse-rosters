@@ -13,13 +13,15 @@ build_injury_data <- function(season) {
     data_frame = data,
     file_name = paste0("injuries_", season),
     nflverse_type = "injury & practice reports",
-    release_tag = "injuries"
+    release_tag = "injuries",
+    timestamp = upload_timestamp
   )
 }
 
-# build all seasons
-# seq(2009, nflreadr::most_recent_season()) |>
-#   purrr::walk(build_injury_data)
+# The workflow uploads the release timestamps once per run in a final job
+upload_timestamp <- !identical(tolower(Sys.getenv("NFLVERSE_UPLOAD_TIMESTAMPS", "true")), "false")
 
-# update most recent season
-build_injury_data(nflreadr::most_recent_season(roster = TRUE))
+# a single season (2009 or later), defaults to the most recent one
+build_injury_data(
+  as.integer(Sys.getenv("NFLVERSE_UPDATE_SEASON", unset = nflreadr::most_recent_season(roster = TRUE)))
+)
