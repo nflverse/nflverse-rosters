@@ -4,6 +4,9 @@ on:
   # schedule:
   #   # every day at 7:07 AM UTC
   #   - cron: '7 7 * * *'
+  # TEMPORARY test trigger, remove before merge
+  push:
+    branches: [migrate/nflverse-actions]
   workflow_dispatch:
     inputs:
       datasets:
