@@ -7,7 +7,7 @@ on:
   workflow_dispatch:
     inputs:
       datasets:
-        description: 'Which data to update'
+        description: 'Which data to update. "all" skips injuries Mar-Aug unless seasons are given'
         required: true
         default: 'all'
         type: choice
@@ -61,6 +61,8 @@ jobs:
           DATASETS: ${{ inputs.datasets || 'all' }}
           SEASONS: ${{ steps.seasons.outputs.seasons }}
           CURRENT_SEASON: ${{ steps.seasons.outputs.current-season }}
+          SEASON_REBUILD: ${{ inputs.season_rebuild }}
+          FULL_REBUILD: ${{ inputs.full_rebuild }}
         run: |
           set -euo pipefail
 
@@ -72,6 +74,20 @@ jobs:
             rosters|injuries|depth_charts) types="[\"$DATASETS\"]" ;;
             *) echo "::error::Unknown datasets value '$DATASETS'"; exit 1 ;;
           esac
+
+          # The daily "all" run updates injuries only during the season
+          # (Sep-Feb). From Mar 15 the roster season is the next one, which
+          # has no injury reports before September. An explicit
+          # datasets=injuries or a season/full rebuild always includes them.
+          season_input="${SEASON_REBUILD//[[:space:]]/}"
+          if [ "$DATASETS" == "all" ] && [ "$FULL_REBUILD" != "true" ] \
+             && { [ -z "$season_input" ] || [[ "$season_input" =~ ^9999(\.0+)?$ ]]; }; then
+            month=$(date -u +%-m)
+            if [ "$month" -ge 3 ] && [ "$month" -le 8 ]; then
+              echo "::notice title=Injuries skipped::No injury reports outside Sep-Feb. Dispatch datasets=injuries to force it."
+              types='["rosters","depth_charts"]'
+            fi
+          fi
 
           # Seasons each dataset can be built for:
           # - rosters: 2002-2015 were built from the NFL Data Exchange (gone).
