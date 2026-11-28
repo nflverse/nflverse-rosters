@@ -1,11 +1,5 @@
 build_dc <- function() {
   szn <- nflreadr::most_recent_season(roster = TRUE)
-  # ESPN only serves the current depth charts, which are prepended to the
-  # season's file. Running this for a past season would mix up seasons.
-  requested <- Sys.getenv("NFLVERSE_UPDATE_SEASON", unset = szn)
-  if (!identical(as.integer(requested), as.integer(szn))) {
-    cli::cli_abort("Depth charts can only be updated for the current season {szn}, not {requested}.")
-  }
 
   new <- try(nflverse.espn::espn_depth_charts(season = szn), silent = FALSE)
   if (inherits(new, "try-error") || (nrow(new) == 0)) {
@@ -56,12 +50,8 @@ build_dc <- function() {
     data_frame = prepend,
     file_name = glue::glue("depth_charts_{szn}"),
     nflverse_type = "depth charts",
-    release_tag = "depth_charts",
-    timestamp = upload_timestamp
+    release_tag = "depth_charts"
   )
 }
-
-# The workflow uploads the release timestamps once per run in a final job
-upload_timestamp <- !identical(tolower(Sys.getenv("NFLVERSE_UPLOAD_TIMESTAMPS", "true")), "false")
 
 build_dc()
