@@ -12,38 +12,9 @@ build_rosters <- function(season = nflreadr:::most_recent_season(roster = TRUE))
 
   shield <- build_rosters_shieldapi(season) |> fill_ids()
 
-  if (season < 2002) {
-    cli::cli_alert_info("Season {season} is earlier than 2002, use Shield API as main source for season rosters")
+  if (season < 2016) {
+    cli::cli_alert_info("Season {season} is earlier than 2016, use Shield API as main source for season rosters")
     roster <- shield
-  }
-
-  if (season >= 2002 && season < 2016) {
-    cli::cli_alert_info("Season {season} is between 2002 and 2015, try to use Data Exchange for weekly rosters")
-    weekly_rosters <- build_rosters_weekly_dataexchange(season)
-    roster <- convert_weekly_to_season_rosters(weekly_rosters)
-    weekly_rosters <- weekly_rosters |>
-      dplyr::select(-c(status, height, weight, headshot)) |>
-      dplyr::left_join(
-        shield |>
-          dplyr::select(gsis_id, status, height, weight, headshot = headshot_url, birth_date) |>
-          dplyr::arrange(gsis_id, status) |>
-          dplyr::distinct(.keep_all = TRUE),
-        by = c("gsis_id"),
-        na_matches = "never"
-      ) |>
-      fill_ids()
-
-    roster <- roster |>
-      dplyr::select(-c(status, height, weight, headshot)) |>
-      dplyr::left_join(
-        shield |>
-          dplyr::select(gsis_id, status, height, weight, headshot = headshot_url, birth_date) |>
-          dplyr::arrange(gsis_id, status) |>
-          dplyr::distinct(gsis_id, .keep_all = TRUE),
-        by = c("gsis_id"),
-        na_matches = "never"
-      ) |>
-      fill_ids()
   }
 
   if (season >= 2016) {
@@ -160,13 +131,7 @@ build_rosters <- function(season = nflreadr:::most_recent_season(roster = TRUE))
           "draft_number"
         )
       ))
-    cli::cli_alert_info("Save weekly rosters...")
-    nflversedata::nflverse_save(
-      data_frame = weekly_rosters,
-      file_name = glue::glue("roster_weekly_{season}"),
-      nflverse_type = "weekly roster data",
-      release_tag = "weekly_rosters"
-    )
+    # saved by exec/update_roster.R
   }
 
   cli::cli_alert_info("Processing season rosters")

@@ -1,0 +1,106 @@
+on:
+  # Started by guga31bb's cron via workflow_dispatch. GitHub's schedule fired
+  # ~10 hours late, so it stays off.
+  # schedule:
+  #   # every day at 7:07 AM UTC
+  #   - cron: '7 7 * * *'
+  workflow_dispatch:
+    inputs:
+      datasets:
+        description: 'Which data to update (current season). "all" skips injuries Mar-Aug'
+        required: true
+        default: 'all'
+        type: choice
+        options:
+          - all
+          - rosters
+          - injuries
+          - depth_charts
+
+name: Update Rosters, Injuries and Depth Charts
+
+# Never run two updates at the same time.
+concurrency:
+  group: update-rosters-data
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  update_setup:
+    runs-on: ubuntu-latest
+    name: update_setup
+    outputs:
+      jobs: ${{ steps.jobs.outputs.jobs }}
+    steps:
+      - id: jobs
+        name: Query jobs
+        env:
+          DATASETS: ${{ inputs.datasets || 'all' }}
+        run: |
+          set -euo pipefail
+
+          case "$DATASETS" in
+            all)          types="rosters injuries depth_charts"
+                          # Injury reports only exist during the season. From
+                          # Mar 15 the roster season is the next one, which has
+                          # none before September. datasets=injuries forces it.
+                          month=$(date -u +%-m)
+                          if [ "$month" -ge 3 ] && [ "$month" -le 8 ]; then
+                            echo "::notice title=Injuries skipped::No injury reports outside Sep-Feb. Dispatch datasets=injuries to force it."
+                            types="rosters depth_charts"
+                          fi ;;
+            rosters|injuries|depth_charts) types="$DATASETS" ;;
+            *) echo "::error::Unknown datasets value '$DATASETS'"; exit 1 ;;
+          esac
+
+          jobs=$(jq -cn --arg types "$types" '
+            $types | split(" ") | map({type: ., script: {
+              rosters: "exec/update_roster.R",
+              injuries: "exec/update-injuries.R",
+              depth_charts: "exec/update-depth-charts.R"}[.]})')
+          echo "Jobs: $jobs"
+          echo "jobs=$jobs" >> "$GITHUB_OUTPUT"
+
+  update:
+    needs: update_setup
+    name: Update ${{ matrix.type }}
+    runs-on: ubuntu-latest
+    container: ghcr.io/nflverse/r-runner:latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include: ${{ fromJson(needs.update_setup.outputs.jobs) }}
+    steps:
+      - uses: actions/checkout@v6
+
+      # Setup installs this repo's DESCRIPTION dependencies, incl. the
+      # private nflapi, ngsscrapR and nflverse-espn: read-only token.
+      - id: read-token
+        uses: nflverse/actions/app-token@v1
+        with:
+          client-id: ${{ vars.NFLVERSE_APP_CLIENT_ID }}
+          private-key: ${{ secrets.NFLVERSE_APP_PRIVATE_KEY }}
+          repositories: nflapi, ngsscrapR, nflverse-espn
+
+      - uses: nflverse/actions/setup@v1
+        with:
+          packages: nflverse/nflapi nflverse/ngsscrapR nflverse/nflverse-espn nflverse/nflverse-players nflverse/nflverse-data nflverse/nflreadr
+          github-pat: ${{ steps.read-token.outputs.token }}
+
+      # write access to nflverse-data only. Minted after setup, which
+      # installs unpinned GitHub code.
+      - id: upload-token
+        uses: nflverse/actions/app-token@v1
+        with:
+          client-id: ${{ vars.NFLVERSE_APP_CLIENT_ID }}
+          private-key: ${{ secrets.NFLVERSE_APP_PRIVATE_KEY }}
+          repositories: nflverse-data
+          contents: write
+
+      - name: Release ${{ matrix.type }}
+        run: Rscript ${{ matrix.script }}
+        env:
+          # used by the gh cli for release uploads
+          GH_TOKEN: ${{ steps.upload-token.outputs.token }}
